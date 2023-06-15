@@ -1,0 +1,8 @@
+LICENSE
+README.md
+setup.py
+downscaleML.egg-info/PKG-INFO
+downscaleML.egg-info/SOURCES.txt
+downscaleML.egg-info/dependency_links.txt
+downscaleML.egg-info/not-zip-safe
+downscaleML.egg-info/top_level.txt
