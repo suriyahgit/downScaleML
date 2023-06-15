@@ -1,0 +1,38 @@
+""" Config constants """
+
+# ERA5 predictor variables on pressure levels
+ERA5_P_VARIABLES = ['geopotential', 'temperature', 'u_component_of_wind',
+                    'v_component_of_wind', 'specific_humidity']
+ERA5_P_VARIABLES_SHORTCUT = ['z', 't', 'u', 'v', 'q']
+ERA5_P_VARIABLE_NAME = {k: v for k, v in zip(ERA5_P_VARIABLES,
+                                             ERA5_P_VARIABLES_SHORTCUT)}
+
+# ERA5 predictor variables on single levels
+ERA5_S_VARIABLES = ['mean_sea_level_pressure', 'orography', '2m_temperature',
+                    'total_precipitation', 'surface_pressure',
+                    '2m_dewpoint_temperature', 'dem_1km']
+ERA5_S_VARIABLES_SHORTCUT = ['mslp', 'o', 't2', 'pr', 'p', 't2d', 'dem_1km']
+ERA5_S_VARIABLE_NAME = {k: v for k, v in zip(ERA5_S_VARIABLES,
+                                             ERA5_S_VARIABLES_SHORTCUT)}
+
+# ERA5 predictor variables
+ERA5_VARIABLES = ERA5_P_VARIABLES + ERA5_S_VARIABLES
+
+# ERA5 predictor variables: mapping from long name to short cut
+ERA5_VARIABLE_NAMES = {**ERA5_P_VARIABLE_NAME, **ERA5_S_VARIABLE_NAME}
+
+# ERA5 pressure levels
+ERA5_PRESSURE_LEVELS = [1000, 975, 950, 925, 900, 875, 850, 825, 800, 775, 750,
+                        700, 650, 600, 550, 500, 450, 400, 350, 300, 250, 225,
+                        200, 175, 150, 125, 100, 70, 50, 30, 20, 10, 7, 5, 3,
+                        2, 1]
+
+PREDICTANDS = ['tasmin', 'tasmax', 'pr', 'tas', 'tasmean']
+
+ERA5_P_VARIABLES = ['geopotential', 'temperature', 'u_component_of_wind',
+                    'v_component_of_wind', 'specific_humidity']
+
+ERA5_S_VARIABLES = ['mean_sea_level_pressure', 'orography', '2m_temperature',
+                    'total_precipitation', 'surface_pressure',
+                    '2m_dewpoint_temperature', 'dem_1km']
+
