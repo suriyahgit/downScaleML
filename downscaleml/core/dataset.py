@@ -17,10 +17,10 @@ import xarray as xr
 import dask.array as da
 
 # locals
-from downScaleML.core.constants import (ERA5_VARIABLES, ERA5_PRESSURE_LEVELS,
+from downscaleml.core.constants import (ERA5_VARIABLES, ERA5_PRESSURE_LEVELS,
                                         ERA5_P_VARIABLE_NAME, ERA5_S_VARIABLE_NAME,
                                         PROJECTION)
-from downScaleML.core.utils import search_files, img2np, LogConfig
+from downscaleml.core.utils import search_files, img2np, LogConfig
 
 # module level logger
 LOGGER = logging.getLogger(__name__)

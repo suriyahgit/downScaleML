@@ -10,7 +10,7 @@ import dataclasses
 from osgeo import gdal, ogr, osr
 import enum
 
-from downScaleML.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME,
+from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME,
                                         ERA5_S_VARIABLES, ERA5_S_VARIABLES_SHORTCUT, ERA5_S_VARIABLE_NAME,
                                         ERA5_VARIABLES, ERA5_VARIABLE_NAMES, ERA5_PRESSURE_LEVELS,
                                         PREDICTANDS, ERA5_P_VARIABLES, ERA5_S_VARIABLES, Gdal2Numpy)
