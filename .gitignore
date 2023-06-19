@@ -1,3 +1,17 @@
 # jupyter
-/.ipynb_checkpoints/
+.ipynb_checkpoints
+
+dist
+
+poetry.lock
+
+setup.py
+
+downscaleml/__pycache__
+
+downscaleml/main/.ipynb_checkpoints
+
+downscaleml/core/.ipynb_checkpoints
+
+downscaleml/core/__pycache__
 

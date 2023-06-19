@@ -17,66 +17,30 @@ import joblib
 # externals
 import xarray as xr
 
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import TweedieRegressor
 from sklearn.metrics import r2_score
 
 # locals
-from pysegcnn.core.utils import search_files
-from pysegcnn.core.trainer import NetworkTrainer, LogConfig
-from pysegcnn.core.logging import log_conf
-from climax.core.dataset import ERA5Dataset, NetCDFDataset
-from climax.core.utils import split_date_range
+from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset
 
-from downScaleML.core.config import (ERA5_PLEVELS, ERA5_PREDICTORS, PREDICTAND,
+from downscaleml.core.config import (ERA5_PLEVELS, ERA5_PREDICTORS, PREDICTAND,
                                      CALIB_PERIOD, VALID_PERIOD, DOY, NORM,
                                      OVERWRITE, DEM, DEM_FEATURES, STRATIFY,
                                      WET_DAY_THRESHOLD, VALID_SIZE, 
                                      start_year, end_year, CHUNKS)
 
-from downScaleML.core.inputoutput import (NET, ERA5_PATH, OBS_PATH, DEM_PATH, MODEL_PATH, TARGET_PATH)
+from downscaleml.core.inputoutput import (NET, ERA5_PATH, OBS_PATH, DEM_PATH, MODEL_PATH, TARGET_PATH)
 
-from downScaleML.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME,
+from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME,
                                         ERA5_S_VARIABLES, ERA5_S_VARIABLES_SHORTCUT, ERA5_S_VARIABLE_NAME,
                                         ERA5_VARIABLES, ERA5_VARIABLE_NAMES, ERA5_PRESSURE_LEVELS,
                                         PREDICTANDS, ERA5_P_VARIABLES, ERA5_S_VARIABLES)
 
+from downscaleml.core.utils import NAMING_Model, normalize, search_files, LogConfig
+from downscaleml.core.logging import log_conf
 
-class NAMING_Model:
-    @staticmethod
-    def state_file(NET, predictand, predictors, plevels, dem=False,
-                   dem_features=False, doy=False):
-        
-        Ppredictors = ''.join([ERA5_P_VARIABLE_NAME[p] for p in predictors if p
-                               in ERA5_P_VARIABLE_NAME])
-        Spredictors = ''.join([ERA5_S_VARIABLE_NAME[p] for p in predictors if p
-                               in ERA5_S_VARIABLE_NAME])
-        plevels = [str(p) for p in plevels]
-        state_file = '_'.join([NET, str(predictand)])
+print("Import statements performing!")
 
-        # check if predictors on pressure levels are used
-        state_file = ('_'.join([state_file, Ppredictors, *plevels]) if
-                      any([p in ERA5_P_VARIABLE_NAME for p in predictors]) else
-                      state_file)
-
-        # check if predictors on surface are used
-        state_file = ('_'.join([state_file, Spredictors]) if
-                      any([p in ERA5_S_VARIABLE_NAME for p in predictors]) else
-                      state_file)
-
-        # check whether digital elevation model, slope and aspect, and the day
-        # of year were used
-        state_file = '_'.join([state_file, 'dem']) if dem else state_file
-        state_file = ('_'.join([state_file, 'sa']) if dem_features else
-                      state_file)
-        state_file = '_'.join([state_file, 'doy']) if doy else state_file
-            
-        return state_file
-    
-def normalize(predictors):
-    predictors -= predictors.min(axis=1, keepdims=True)
-    predictors /= predictors.max(axis=1, keepdims=True)
-    return predictors
-    
 # module level logger
 LOGGER = logging.getLogger(__name__)
 
@@ -194,24 +158,62 @@ if __name__ == '__main__':
             if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
                 # move on to next grid point
                 continue
+            
+            # prepare predictors of validation period
+            point_validation = predictors_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
+            #point_validation = normalize(point_validation)
+
+            predictand_validation = predictand_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
 
             LogConfig.init_log('Current grid point: ({:d}, {:d})'.format(j, i))    
             # normalize each predictor variable to [0, 1]
             # point_predictors = normalize(point_predictors)
 
-            # instanciate the model for the current grid point
-            model = RandomForestRegressor()
+            # instanciate the GLM
+            model = TweedieRegressor(power=0 if PREDICTAND in ['tasmax', 'tasmin', 'tasmean'] else 2)
+            # power = 0: Normal distribution (tasmax, tasmin)
+            # power = 1: Poisson distribution
+            # power = (1, 2): Compound Poisson Gamma distribution
+            # power = 2: Gamma distribution (pr)
+            # power = 3: Inverse Gaussian
 
             # train model on training data
             model.fit(point_predictors, point_predictand)
 
-            model_file = "{}_{}_{}.joblib".format(str(state_file), j, i) 
+            model_file = "{}_{}_{}.joblib".format(str(state_file), j, i)
+            # predict validation period
+            pred = model.predict(point_validation)
+            LogConfig.init_log('Processing grid point: ({:d}, {:d}), score: {:.2f}'.format(j, i, r2_score(predictand_validation, pred)))
 
             # save model with the index to use it later for any dataset with similar grid
             joblib.dump(model, model_file)
             LogConfig.init_log('Model saved for the current grid point: Saved({:d}, {:d})'.format(j, i))
+            
+            # store predictions for current grid point
+            prediction[:, j, i] = pred
     
     LogConfig.init_log('Model ensemble saved and Indexed')
+    
+    # store predictions in xarray.Dataset
+    predictions = xr.DataArray(data=prediction, dims=['time', 'y', 'x'],
+                               coords=dict(time=pd.date_range(predictors_valid.time.values[0],predictors_valid.time.values[-1], freq='D'),
+                                           lat=predictand_valid.y, lon=predictand_valid.x))
+    predictions = predictions.to_dataset(name=PREDICTAND)
+
+    predictions = predictions.set_index(
+        time='time',
+        y='lat',
+        x='lon'
+    )
+
+    # initialize network filename
+    predict_file = NAMING_Model.state_file(
+        NET, PREDICTAND, ERA5_PREDICTORS, ERA5_PLEVELS, dem=DEM,
+        dem_features=DEM_FEATURES, doy=DOY)
+
+    predictions.to_netcdf("{}/{}_{}_to_{}.nc".format(str(target.parent), str(predict_file), str(start_year), str(end_year)))
+    
+    LogConfig.init_log('Prediction Saved!!! SMILE PLEASE')
             
     
     

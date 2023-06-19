@@ -1,7 +1,7 @@
 import datetime
 import numpy as np
 
-from downScaleML.core.constants import (PREDICTANDS, ERA5_P_VARIABLES,
+from downscaleml.core.constants import (PREDICTANDS, ERA5_P_VARIABLES,
                                    ERA5_S_VARIABLES)
 
 # builtins
@@ -57,7 +57,7 @@ if DEM:
         ERA5_S_PREDICTORS.remove('orography')
 
 
-PREDICTAND='tasmean'
+PREDICTAND='tasmin'
 assert PREDICTAND in PREDICTANDS
 
 CALIB_PERIOD = np.arange(
