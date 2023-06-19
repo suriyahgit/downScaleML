@@ -1,8 +1,6 @@
 # jupyter
 .ipynb_checkpoints
 
-dist
-
 poetry.lock
 
 setup.py
