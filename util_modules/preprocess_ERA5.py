@@ -123,7 +123,7 @@ if __name__ == '__main__':
             # aggregate files for different years into a single file using
             # xarray and dask
             LOGGER.info('Aggregating different years into single file ...')
-            ds = xr.open_mfdataset(target, parallel=True).compute()
+            ds = xr.open_mfdataset(target, concat_dim='time', combine='nested', parallel=True).compute()
 
             # set NetCDF file compression for each variable
             if args.compress:
@@ -134,10 +134,6 @@ if __name__ == '__main__':
             # save aggregated netcdf file
             LOGGER.info('Compressing NetCDF: {}'.format(filename))
             ds.to_netcdf(filename, engine='h5netcdf')
-
-            # remove single-year files
-            for trg in target:
-                trg.unlink()
 
     else:
         LOGGER.info('{} does not exist.'.format(str(args.source)))
