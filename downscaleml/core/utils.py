@@ -1,3 +1,4 @@
+import cdo
 import numpy as np
 import pathlib
 import pandas as pd
@@ -17,6 +18,34 @@ from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORT
 
 # module level logger
 LOGGER = logging.getLogger(__name__)
+
+def reproject_cdo(grid, src_ds, trg_ds, mode='bilinear', overwrite=False):
+
+    # instanciate the cdo
+    operator = cdo.Cdo()
+
+    # check if dataset exists
+    trg_ds = pathlib.Path(trg_ds)
+    if trg_ds.exists() and not overwrite:
+        LOGGER.info('{} already exists. Aborting ...'.format(trg_ds))
+        return trg_ds
+
+    # check if mode is supported
+    if mode not in CDO_RESAMPLING_MODES:
+        raise ValueError('Resampling mode "{}" not supported.'.format(mode))
+    else:
+        # check which resampling mode to use
+        LOGGER.info('Reproject: {}'.format(trg_ds))
+        if mode == 'bilinear':
+            operator.remapbil(str(grid),
+                              input=str(src_ds), output=str(trg_ds))
+
+        if mode == 'conservative':
+            operator.remapcon(str(grid),
+                              input=str(src_ds), output=str(trg_ds))
+
+    return trg_ds
+
 
 def normalize(predictors):
     predictors -= predictors.min(axis=1, keepdims=True)
