@@ -41,6 +41,10 @@ ERA5_S_VARIABLES = ['mean_sea_level_pressure', 'orography', '2m_temperature',
 
 PROJECTION = 'lambert_azimuthal_equal_area'
 
+# climate data operator (cdo) resampling modes
+CDO_RESAMPLING_MODES = ['bilinear', 'conservative']
+
+
 
 class Gdal2Numpy(enum.Enum):
     """Data type mapping from gdal to numpy."""
