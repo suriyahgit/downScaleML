@@ -14,7 +14,7 @@ import enum
 from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME,
                                         ERA5_S_VARIABLES, ERA5_S_VARIABLES_SHORTCUT, ERA5_S_VARIABLE_NAME,
                                         ERA5_VARIABLES, ERA5_VARIABLE_NAMES, ERA5_PRESSURE_LEVELS,
-                                        PREDICTANDS, ERA5_P_VARIABLES, ERA5_S_VARIABLES, Gdal2Numpy)
+                                        PREDICTANDS, ERA5_P_VARIABLES, ERA5_S_VARIABLES, Gdal2Numpy, CDO_RESAMPLING_MODES)
 
 # module level logger
 LOGGER = logging.getLogger(__name__)
