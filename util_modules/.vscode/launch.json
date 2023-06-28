@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "preprocess_ERA5_precipi.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/ERA5/Hourly/geopotential/",
+                "/home/sdhinakaran/ERA5_Daily/",
+                "--variable",
+                "geopotential",
+                "--reproject",
+                "--grid",
+                "/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/interTwin_domain/interTwin_grid",
+                "--mode",
+                "bilinear",
+                "--overwrite"
+            ]
+        }
+    ]
+}

@@ -47,7 +47,7 @@ if __name__ == '__main__':
         if args.variable is not None:
             variables = args.variable
 
-        # iterate over the variables to pr- eprocess
+        # iterate over the variables to pre-process
         for var in variables:
             # path to files of the current variable
             source = sorted(search_files(
@@ -78,25 +78,34 @@ if __name__ == '__main__':
             dlyavg = [args.target.joinpath(var, f.name.replace('.nc', '_d.nc'))
                       for f in source]
 
+            # aggregate files for different years into a single file using
+            # xarray and dask
+            LOGGER.info('Aggregating different years into single file ...')
+            ds = xr.open_mfdataset(source, concat_dim='time', combine='nested', parallel=True)
+
             # aggregate hourly data to daily data: resample in case of missing
             # days
             LOGGER.info('Computing daily averages ...' if var !=
                         'total_precipitation' else 'Computing daily sums ...')
-            for src, tmp in zip(source, dlyavg):
-                ds = xr.open_dataset(src)
 
-                # compute daily averages/sums
-                if var == 'total_precipitation':
-                    # convert from m to mm
-                    ds = ds.resample(time='D').sum(dim='time') * 1000
-                else:
-                    ds = ds.resample(time='D').mean(dim='time')
+            ds = ds.shift(time = -6)
+            # compute daily averages/sums
+            if var == 'total_precipitation':
+                # convert from m to mm
+                ds = ds.resample(time='D').sum(dim='time') * 1000
+            else:
+                ds = ds.resample(time='D').mean(dim='time')
+            
+            last_date = ds.time[-1].values
+            ds = ds.drop_sel(time=last_date)
 
-                # save intermediate file for resampling and reprojection to
-                # target grid
-                comp = dict(dtype='float32', zlib=True, complevel=5)
-                encoding = {var: comp for var in ds.data_vars}
-                ds.to_netcdf(tmp, engine='h5netcdf', encoding=encoding)
+            LOGGER.info('Dataset manipulation done!')
+
+            # save intermediate file for resampling and reprojection to
+            # target grid
+            ds.to_netcdf(filename, engine='h5netcdf', chunks={'time': 365})
+
+            LOGGER.info('Dataset Saved Successfully')
 
             # reproject and resample to target grid in parallel
             if args.reproject:
@@ -106,6 +115,8 @@ if __name__ == '__main__':
                 if not args.grid.exists():
                     LOGGER.info('{} does not exist.'.format(args.grid))
                     sys.exit()
+
+                reproject_cdo(args.grid, dlyavg[0], target[0], args.mode, args.overwrite)
 
                 # create filenames for reprojected files
                 target = [args.target.joinpath(var, f.name) for f in source]
@@ -122,11 +133,6 @@ if __name__ == '__main__':
             else:
                 target = dlyavg
 
-            # aggregate files for different years into a single file using
-            # xarray and dask
-            LOGGER.info('Aggregating different years into single file ...')
-            ds = xr.open_mfdataset(target, concat_dim='time', combine='nested', parallel=True).compute()
-
             # set NetCDF file compression for each variable
             if args.compress:
                 for _, var in ds.data_vars.items():
@@ -136,6 +142,10 @@ if __name__ == '__main__':
             # save aggregated netcdf file
             LOGGER.info('Compressing NetCDF: {}'.format(filename))
             ds.to_netcdf(filename, engine='h5netcdf')
+
+            # remove single-year files
+            for trg in target:
+                trg.unlink()
 
     else:
         LOGGER.info('{} does not exist.'.format(str(args.source)))
