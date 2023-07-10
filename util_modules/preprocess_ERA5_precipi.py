@@ -67,6 +67,12 @@ if __name__ == '__main__':
             # check if aggregated file exists
             filename = '_'.join(['ERA5', var, ymin, ymax]) + '.nc'
             filename = args.target.joinpath(var, filename)
+            filename_resampled = '_'.join(['ERA5', var, ymin, ymax]) +'_resampled' + '.nc'
+            filename_resampled = args.target.joinpath(var, filename_resampled)
+            filename_reprojected = '_'.join(['ERA5', var, ymin, ymax]) +'_reprojected' + '.nc'
+            filename_reprojected = args.target.joinpath(var, filename_reprojected)
+            
+
             if not filename.parent.exists():
                 LOGGER.info('mkdir {}'.format(filename.parent))
                 filename.parent.mkdir(parents=True, exist_ok=True)
@@ -103,7 +109,7 @@ if __name__ == '__main__':
 
             # save intermediate file for resampling and reprojection to
             # target grid
-            ds.to_netcdf(filename, engine='h5netcdf', chunks={'time': 365})
+            ds.load().to_netcdf(filename_resampled, engine='h5netcdf')
 
             LOGGER.info('Dataset Saved Successfully')
 
@@ -116,22 +122,11 @@ if __name__ == '__main__':
                     LOGGER.info('{} does not exist.'.format(args.grid))
                     sys.exit()
 
-                reproject_cdo(args.grid, dlyavg[0], target[0], args.mode, args.overwrite)
-
-                # create filenames for reprojected files
-                target = [args.target.joinpath(var, f.name) for f in source]
-
-                # reproject to target grid
-                target = Parallel(n_jobs=-1, verbose=51)(
-                        delayed(reproject_cdo)(args.grid, tmp, trg, args.mode,
-                                               args.overwrite)
-                        for tmp, trg in zip(dlyavg, target))
-
-                # remove temporary daily averages
-                for avg in dlyavg:
-                    avg.unlink()
-            else:
-                target = dlyavg
+                reprojected_path = reproject_cdo(args.grid, filename_resampled, filename_reprojected, args.mode, args.overwrite)
+                LOGGER.info('Reprojection done! and the file saved successfully')
+                ds = xr.open_dataset(reprojected_path)
+            
+            filename_resampled.unlink()
 
             # set NetCDF file compression for each variable
             if args.compress:
@@ -142,10 +137,9 @@ if __name__ == '__main__':
             # save aggregated netcdf file
             LOGGER.info('Compressing NetCDF: {}'.format(filename))
             ds.to_netcdf(filename, engine='h5netcdf')
-
-            # remove single-year files
-            for trg in target:
-                trg.unlink()
+            
+            if reprojected_path.exists():
+                filename_reprojected.unlink()
 
     else:
         LOGGER.info('{} does not exist.'.format(str(args.source)))

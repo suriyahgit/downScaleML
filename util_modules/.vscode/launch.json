@@ -8,20 +8,14 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "preprocess_ERA5_precipi.py",
+            "program": "combined_preprocess_CERRA.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/ERA5/Hourly/geopotential/",
-                "/home/sdhinakaran/ERA5_Daily/",
-                "--variable",
-                "geopotential",
-                "--reproject",
-                "--grid",
-                "/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/interTwin_domain/interTwin_grid",
-                "--mode",
-                "bilinear",
-                "--overwrite"
+                "/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/CERRA_processed/",
+                "--target",
+                "/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/larger_alps/CERRA/",
+                "--compress"
             ]
         }
     ]

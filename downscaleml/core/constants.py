@@ -11,10 +11,10 @@ ERA5_P_VARIABLE_NAME = {k: v for k, v in zip(ERA5_P_VARIABLES,
                                              ERA5_P_VARIABLES_SHORTCUT)}
 
 # ERA5 predictor variables on single levels
-ERA5_S_VARIABLES = ['mean_sea_level_pressure', 'orography', '2m_temperature',
+ERA5_S_VARIABLES = ['mean_sea_level_pressure', '2m_temperature',
                     'total_precipitation', 'surface_pressure',
-                    '2m_dewpoint_temperature', 'dem_1km']
-ERA5_S_VARIABLES_SHORTCUT = ['mslp', 'o', 't2', 'pr', 'p', 't2d', 'dem_1km']
+                    '2m_dewpoint_temperature']
+ERA5_S_VARIABLES_SHORTCUT = ['mslp', 't2', 'pr', 'p', 't2d']
 ERA5_S_VARIABLE_NAME = {k: v for k, v in zip(ERA5_S_VARIABLES,
                                              ERA5_S_VARIABLES_SHORTCUT)}
 
@@ -35,7 +35,7 @@ PREDICTANDS = ['tasmin', 'tasmax', 'pr', 'tas', 'tasmean']
 ERA5_P_VARIABLES = ['geopotential', 'temperature', 'u_component_of_wind',
                     'v_component_of_wind', 'specific_humidity']
 
-ERA5_S_VARIABLES = ['mean_sea_level_pressure', 'orography', '2m_temperature',
+ERA5_S_VARIABLES = ['mean_sea_level_pressure', '2m_temperature',
                     'total_precipitation', 'surface_pressure',
                     '2m_dewpoint_temperature', 'dem_1km']
 
@@ -44,6 +44,9 @@ PROJECTION = 'lambert_azimuthal_equal_area'
 # climate data operator (cdo) resampling modes
 CDO_RESAMPLING_MODES = ['bilinear', 'conservative']
 
+YEARS = list(range(1981, 2021))
+
+CERRA_VARIABLES = ["total_precipitation", "2m_temperature"]
 
 
 class Gdal2Numpy(enum.Enum):

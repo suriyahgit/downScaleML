@@ -52,6 +52,15 @@ def normalize(predictors):
     predictors /= predictors.max(axis=1, keepdims=True)
     return predictors
 
+def rename_file(old_path, new_path):
+    try:
+        os.rename(old_path, new_path)
+        LOGGER.info(f"File '{old_path}' renamed to '{new_path}' successfully.")
+    except FileNotFoundError:
+        LOGGER.info(f"Error: File '{old_path}' not found.")
+    except FileExistsError:
+        LOGGER.info(f"Error: File '{new_path}' already exists.")
+
 class NAMING_Model:
     @staticmethod
     def state_file(NET, predictand, predictors, plevels, dem=False,
