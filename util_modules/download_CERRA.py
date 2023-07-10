@@ -14,13 +14,13 @@ import numpy as np
 import subprocess
 
 # CERRA predictor variables on single levels
-var = 'orography'
+var = 'total_precipitation'
 
 # path to store downloaded CERRA data
-CERRA_PATH = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/tmp/')
+CERRA_PATH = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/CERRA/pr')
 
 # time period
-years = [str(y) for y in np.arange(2005, 2010)]
+years = [str(y) for y in np.arange(1985, 1987)]
 month = [str(m) for m in np.arange(1, 13)]
 days = [str(d) for d in np.arange(1, 32)]
 time = ["{:02d}:00".format(t) for t in np.arange(0, 24, 3)]
@@ -29,7 +29,7 @@ time = ["{:02d}:00".format(t) for t in np.arange(0, 24, 3)]
 CONFIG = {
     'level_type': 'surface',
     'product_type': 'analysis',
-    'variable' : 'orography',
+    'variable' : 'total_precipitation',
     'month': month,
     'day': days,
     'time': time,
@@ -65,7 +65,7 @@ if __name__ == '__main__':
             product, {**CONFIG, **{'year': year}}, file)
         for file, year in zip(files, years) if (not file.exists() or OVERWRITE))
 
-"""
+
     #These lines below are helpful when you don't have too much of space and also regridding on the go, which saves hard-ships and hard-disks together  
     # post-processing
     for file in files:
@@ -73,6 +73,5 @@ if __name__ == '__main__':
             # TODO: Add post-processing code here
             # Move file to the processed_output directory
             output_file = processed_output.joinpath(file.stem + '_remapped.nc')
-            subprocess.run(['cdo', 'remapbil,grid_ext', str(file), str(output_file)])
-            os.remove(file)
-"""
+            subprocess.run(['cdo', 'remapbil,/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/interTwin_domain/interTwin_grid', str(file), str(output_file)])
+            #os.remove(file)
