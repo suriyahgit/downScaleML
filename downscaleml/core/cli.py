@@ -218,4 +218,62 @@ def preprocess_cerra_parser():
 
     return parser
     
+def dem_preprocess_parser():
+    
+    # define command line argument parser
+    parser = argparse.ArgumentParser(
+        description='Aggregate ERA5 reanalysis from hourly to daily data.',
+        epilog=EPILOGUE,
+        formatter_class=lambda prog: argparse.RawDescriptionHelpFormatter(
+            prog, max_help_position=50, indent_increment=2))
+    
+    # positional argument: path to search for ERA5 NetCDF files
+    parser.add_argument('source', type=pathlib.Path,
+                        help='Path to search for ERA5 NetCDF files.')
+    
+    # optional positional argument: path to save the reprojected NetCDF files
+    parser.add_argument('--target', type=pathlib.Path,
+                        help='Path to save the aggregated ERA5 NetCDF files.')
+    
+    # default values
+    default = '(default: %(default)s)'
+    
+    # optional argument: whether to reproject to target grid
+    parser.add_argument('-r', '--reproject', type=bool,
+                        help=('Whether to reproject to target grid {}.'
+                              .format(default)), default=False, nargs='?',
+                        const=True, metavar='')
+    
+    # optional argument: path to the target grid file
+    parser.add_argument('-g', '--grid', type=pathlib.Path,
+                        help='Path to the target grid {}.'.format(default),
+                        default=None, metavar='')
+
+    # optional argument: whether to overwrite files
+    parser.add_argument('-o', '--overwrite', type=bool,
+                        help='Overwrite existing files {}.'.format(default),
+                        default=False, nargs='?', const=True, metavar='')
+    
+    # optional argument: resampling mode
+    parser.add_argument('-m', '--mode', type=str,
+                        help='Resampling mode {}.'.format(default),
+                        default='bilinear', choices=CDO_RESAMPLING_MODES,
+                        metavar='')
+    
+    # optional argument: purge single-year files
+    parser.add_argument('-p', '--purge', type=bool,
+                        help='Remove single year files {}.'.format(default),
+                        default=False, nargs='?', const=True, metavar='')
+    
+    
+    
+    return parser
+
+    
+    
+    
+    
+    
+    
+
     
