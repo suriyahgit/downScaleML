@@ -13,6 +13,7 @@ import datetime
 import pathlib
 import pandas as pd
 import joblib
+from multiprocessing import Pool
 
 # externals
 import xarray as xr
@@ -145,52 +146,71 @@ if __name__ == '__main__':
     
     # iterate over the grid points
     LogConfig.init_log('Downscaling by Random Forest Starts: iterating each grid cell over time dimension')
+    
+    # instanciate the model for the current grid point
+    model = RandomForestRegressor()
 
     prediction = np.ones(shape=(len(predictors_valid.time), len(predictors_valid.y), len(predictors_valid.x))) * np.nan
-    for i, _ in enumerate(predictors_train.x):
-        for j, _ in enumerate(predictors_train.y):
-
-            # current grid point: xarray.Dataset, dimensions=(time)
-            point_predictors = predictors_train.isel(x=i, y=j)
-            point_predictand = predictand_train.isel(x=i, y=j)
-
-            # convert xarray.Dataset to numpy.array: shape=(time, predictors)
-            point_predictors = point_predictors.to_array().values.swapaxes(0, 1)
-            point_predictand = point_predictand.to_array().values.squeeze()
-
-            # check if the grid point is valid
-            if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
-                # move on to next grid point
-                continue
-            
-            # prepare predictors of validation period
-            point_validation = predictors_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
-            #point_validation = normalize(point_validation)
-
-            predictand_validation = predictand_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
-
-            LogConfig.init_log('Current grid point: ({:d}, {:d})'.format(j, i))    
-            # normalize each predictor variable to [0, 1]
-            # point_predictors = normalize(point_predictors)
-
-            # instanciate the model for the current grid point
-            model = RandomForestRegressor()
-
-            # train model on training data
-            model.fit(point_predictors, point_predictand)
-
-            model_file = "{}_{}_{}.joblib".format(str(state_file), j, i)
-            # predict validation period
-            pred = model.predict(point_validation)
-            LogConfig.init_log('Processing grid point: ({:d}, {:d}), score: {:.2f}'.format(j, i, r2_score(predictand_validation, pred)))
-
-            # save model with the index to use it later for any dataset with similar grid
-            joblib.dump(model, model_file)
-            LogConfig.init_log('Model saved for the current grid point: Saved({:d}, {:d})'.format(j, i))
-            
-            # store predictions for current grid point
-            prediction[:, j, i] = pred
     
+    def process_grid_cell(i, j):
+        # current grid point: xarray.Dataset, dimensions=(time)
+        point_predictors = predictors_train.isel(x=i, y=j)
+        point_predictand = predictand_train.isel(x=i, y=j)
+
+        # convert xarray.Dataset to numpy.array: shape=(time, predictors)
+        point_predictors = point_predictors.to_array().values.swapaxes(0, 1)
+        point_predictand = point_predictand.to_array().values.squeeze()
+
+        # check if the grid point is valid
+        if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
+            # move on to next grid point
+            return None
+
+        # prepare predictors of validation period
+        point_validation = predictors_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
+        # point_validation = normalize(point_validation)
+
+        predictand_validation = predictand_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
+
+        LogConfig.init_log('Current grid point: ({:d}, {:d})'.format(j, i))
+        # normalize each predictor variable to [0, 1]
+        # point_predictors = normalize(point_predictors)
+
+        # train model on training data
+        model.fit(point_predictors, point_predictand)
+
+        pred = model.predict(point_validation)
+        LogConfig.init_log('Processing grid point: ({:d}, {:d}), score: {:.2f}'.format(j, i, r2_score(predictand_validation, pred)))
+
+        return pred, i, j
+
+    # Create a function to handle the multiprocessing logic
+    def parallel_process(args):
+        return process_grid_cell(*args)
+
+    # Create a list of arguments for each grid cell
+    grid_cells = [(i, j) for i in range(len(predictors_train.x)) for j in range(len(predictors_train.y))]
+
+    # Create a multiprocessing pool with the desired number of processes
+    pool = Pool(processes=4)  # Assuming you want to use all four cores
+
+    # Use the pool to parallelize the process_grid_cell function over the grid cells
+    results = pool.map(parallel_process, grid_cells)
+
+    # Close the pool to release resources
+    pool.close()
+
+    # Store the predictions for each grid point
+    for pred, i, j in results:
+        if pred is not None:
+            prediction[:, j, i] = pred
+
+    model_file = "{}_tasmean.joblib".format(str(state_file), j, i)
+    
+    # save model with the index to use it later for any dataset with similar grid
+    joblib.dump(model, model_file)
+    LogConfig.init_log('Model saved for the all grid points')
+            # predict validation period
     LogConfig.init_log('Model ensemble saved and Indexed')
     
     # store predictions in xarray.Dataset

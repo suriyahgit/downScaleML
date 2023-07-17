@@ -145,8 +145,14 @@ if __name__ == '__main__':
     
     # iterate over the grid points
     LogConfig.init_log('Downscaling by Random Forest Starts: iterating each grid cell over time dimension')
+    
+    # instanciate the model for the current grid point
+    model = RandomForestRegressor()
 
     prediction = np.ones(shape=(len(predictors_valid.time), len(predictors_valid.y), len(predictors_valid.x))) * np.nan
+    print(predictors_train.x)
+    print(predictors_train.y)
+    
     for i, _ in enumerate(predictors_train.x):
         for j, _ in enumerate(predictors_train.y):
 
@@ -173,24 +179,21 @@ if __name__ == '__main__':
             # normalize each predictor variable to [0, 1]
             # point_predictors = normalize(point_predictors)
 
-            # instanciate the model for the current grid point
-            model = RandomForestRegressor()
-
             # train model on training data
             model.fit(point_predictors, point_predictand)
-
-            model_file = "{}_{}_{}.joblib".format(str(state_file), j, i)
-            # predict validation period
+            
             pred = model.predict(point_validation)
             LogConfig.init_log('Processing grid point: ({:d}, {:d}), score: {:.2f}'.format(j, i, r2_score(predictand_validation, pred)))
-
-            # save model with the index to use it later for any dataset with similar grid
-            joblib.dump(model, model_file)
-            LogConfig.init_log('Model saved for the current grid point: Saved({:d}, {:d})'.format(j, i))
             
             # store predictions for current grid point
             prediction[:, j, i] = pred
     
+    model_file = "{}_tasmean.joblib".format(str(state_file), j, i)
+    
+    # save model with the index to use it later for any dataset with similar grid
+    joblib.dump(model, model_file)
+    LogConfig.init_log('Model saved for the all grid points')
+            # predict validation period
     LogConfig.init_log('Model ensemble saved and Indexed')
     
     # store predictions in xarray.Dataset

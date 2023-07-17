@@ -82,6 +82,8 @@ if __name__ == '__main__':
     Era5 = ERA5Dataset(ERA5_PATH.joinpath('ERA5'), ERA5_PREDICTORS,
                        plevels=ERA5_PLEVELS)
     Era5_ds = Era5.merge(chunks=CHUNKS)
+    Era5_ds = Era5_ds.rename({'longitude': 'x','latitude': 'y'})
+    
     # initialize OBS predictand dataset
     LogConfig.init_log('Initializing observations for predictand: {}'
                        .format(PREDICTAND))
@@ -89,6 +91,7 @@ if __name__ == '__main__':
     # read in-situ gridded observations
     Obs_ds = search_files(OBS_PATH.joinpath(PREDICTAND), '.nc$').pop()
     Obs_ds = xr.open_dataset(Obs_ds)
+    Obs_ds = Obs_ds.rename({'longitude': 'x','latitude': 'y'})
 
     # whether to use digital elevation model
     if DEM:
