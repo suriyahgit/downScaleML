@@ -13,13 +13,14 @@ import datetime
 import pathlib
 import pandas as pd
 import joblib
+import cupy as cp
 
 # externals
 import xarray as xr
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
-from sklearn.model_selection import train_test_split
+from cuml.ensemble import RandomForestRegressor
+from cuml.metrics import r2_score
+from cuml.model_selection import train_test_split
 
 # locals
 from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset
@@ -146,7 +147,7 @@ if __name__ == '__main__':
     # iterate over the grid points
     LogConfig.init_log('Downscaling by Random Forest Starts: iterating each grid cell over time dimension')
 
-    prediction = np.ones(shape=(len(predictors_valid.time), len(predictors_valid.y), len(predictors_valid.x))) * np.nan
+    prediction = cp.ones(shape=(len(predictors_valid.time), len(predictors_valid.y), len(predictors_valid.x))) * cp.nan
     for i, _ in enumerate(predictors_train.x):
         for j, _ in enumerate(predictors_train.y):
 
@@ -155,19 +156,19 @@ if __name__ == '__main__':
             point_predictand = predictand_train.isel(x=i, y=j)
 
             # convert xarray.Dataset to numpy.array: shape=(time, predictors)
-            point_predictors = point_predictors.to_array().values.swapaxes(0, 1)
-            point_predictand = point_predictand.to_array().values.squeeze()
+            point_predictors = cp.asarray(point_predictors.to_array().values.swapaxes(0, 1))
+            point_predictand = cp.asarray(point_predictand.to_array().values.squeeze())
 
             # check if the grid point is valid
-            if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
+            if cp.isnan(point_predictors).any() or cp.isnan(point_predictand).any():
                 # move on to next grid point
                 continue
             
             # prepare predictors of validation period
-            point_validation = predictors_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
+            point_validation = cp.asarray(predictors_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1))
             #point_validation = normalize(point_validation)
 
-            predictand_validation = predictand_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
+            predictand_validation = cp.asarray(predictand_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1))
 
             LogConfig.init_log('Current grid point: ({:d}, {:d})'.format(j, i))    
             # normalize each predictor variable to [0, 1]

@@ -46,10 +46,9 @@ if __name__ == '__main__':
             reprojected_path = reproject_cdo(args.grid, source, target, args.mode, args.overwrite)
             ds = xr.open_dataset(reprojected_path)
             ds = ds.rename({'longitude': 'x','latitude': 'y'})
-            ds.to_netcdf("{}/dem.nc".format(target.parent))
             reprojected_path.unlink()
+            ds.to_netcdf("{}/{}".format(target.parent, target.name))
+            LOGGER.info('DEM {} Processed and saved in target_location'.format(target.name))
     else:
         LOGGER.info('Provide proper source and target please...')
         sys.exit()
-            
-            # set NetCDF file compression for each variable
