@@ -136,6 +136,11 @@ if __name__ == '__main__':
     else:
         LogConfig.init_log('We are not calculating Stratified Precipitation based on Wet Days here!')
 
+    lat = slice(0, 5)
+    lon = slice(0, 5)
+    Era5_ds =  Era5_ds.isel(x=lon, y=lat)
+    Obs_ds =  Obs_ds.isel(x=lon, y=lat)
+
     # training and validation dataset
     Era5_train, Obs_train = Era5_ds.sel(time=CALIB_PERIOD), Obs_ds.sel(time=CALIB_PERIOD)
     Era5_valid, Obs_valid = Era5_ds.sel(time=VALID_PERIOD), Obs_ds.sel(time=VALID_PERIOD)
@@ -182,8 +187,8 @@ if __name__ == '__main__':
 
         pred = model.predict(point_validation)
         LogConfig.init_log('Processing grid point: ({:d}, {:d}), score: {:.2f}'.format(j, i, r2_score(predictand_validation, pred)))
-
-        return pred, i, j
+        
+        prediction[:, j, i] = pred
 
     # Create a function to handle the multiprocessing logic
     def parallel_process(args):
@@ -193,20 +198,15 @@ if __name__ == '__main__':
     grid_cells = [(i, j) for i in range(len(predictors_train.x)) for j in range(len(predictors_train.y))]
 
     # Create a multiprocessing pool with the desired number of processes
-    pool = Pool(processes=(multiprocessing.cpu_count() - 4))  # Assuming you want to use all four cores
+    pool = Pool(processes=4)  # Assuming you want to use all four cores
 
     # Use the pool to parallelize the process_grid_cell function over the grid cells
-    results = pool.map(parallel_process, grid_cells)
+    pool.map(parallel_process, grid_cells)
 
     # Close the pool to release resources
     pool.close()
 
-    # Store the predictions for each grid point
-    for pred, i, j in results:
-        if pred is not None:
-            prediction[:, j, i] = pred
-
-    model_file = "{}_tasmean.joblib".format(str(state_file), j, i)
+    model_file = "{}_tasmean.joblib".format(str(state_file))
     
     # save model with the index to use it later for any dataset with similar grid
     joblib.dump(model, model_file)
