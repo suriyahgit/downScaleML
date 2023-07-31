@@ -4,7 +4,6 @@ NET = "RandomForest"
 
 ROOT = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/larger_alps/')
 
-
 # path to this file
 HERE = pathlib.Path(__file__).parent
 

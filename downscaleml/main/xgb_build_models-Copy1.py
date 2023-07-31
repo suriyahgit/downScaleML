@@ -16,9 +16,10 @@ import joblib
 
 # externals
 import xarray as xr
-
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRFRegressor
+#from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score
+from sklearn.model_selection import train_test_split
 
 # locals
 from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     # whether to use digital elevation model
     if DEM:
         # digital elevation model: Copernicus EU-Dem v1.1
-        dem = search_files(DEM_PATH, '^dem_1km.nc$').pop()
+        dem = search_files(DEM_PATH, '^interTwin_dem.nc$').pop()
 
         # read elevation and compute slope and aspect
         dem = ERA5Dataset.dem_features(
@@ -143,8 +144,14 @@ if __name__ == '__main__':
     # iterate over the grid points
     LogConfig.init_log('Downscaling by Random Forest Starts: iterating each grid cell over time dimension')
 
-    prediction = np.ones(shape=(len(predictors_valid.time), len(predictors_valid.y), len(predictors_valid.x))) * np.nan
+    #prediction = np.ones(shape=(len(predictors_valid.time), len(predictors_valid.y), len(predictors_valid.x))) * np.nan
+    params = {
+    "tree_method": "gpu_hist",
+    "gpu_id": 0  # Specify GPU ID if you have multiple GPUs
+    }
+
     for i, _ in enumerate(predictors_train.x):
+        model = XGBRFRegressor(**params)
         for j, _ in enumerate(predictors_train.y):
 
             # current grid point: xarray.Dataset, dimensions=(time)
@@ -164,17 +171,13 @@ if __name__ == '__main__':
             # normalize each predictor variable to [0, 1]
             # point_predictors = normalize(point_predictors)
 
-            # instanciate the model for the current grid point
-            model = RandomForestRegressor()
-
             # train model on training data
             model.fit(point_predictors, point_predictand)
-
-            model_file = "{}_{}_{}.joblib".format(str(state_file), j, i) 
-
-            # save model with the index to use it later for any dataset with similar grid
-            joblib.dump(model, model_file)
-            LogConfig.init_log('Model saved for the current grid point: Saved({:d}, {:d})'.format(j, i))
+            
+        model_file = "{}_{}.joblib".format(str(state_file), i) 
+        # save model with the index to use it later for any dataset with similar grid
+        joblib.dump(model, model_file)
+        LogConfig.init_log('Model saved for the current grid row: Saved({:d})'.format(i))
     
     LogConfig.init_log('Model ensemble saved and Indexed')
             
