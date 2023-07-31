@@ -57,11 +57,11 @@ if DEM:
         ERA5_S_PREDICTORS.remove('orography')
 
 
-PREDICTAND='tasmean'
+PREDICTAND='tasmax'
 assert PREDICTAND in PREDICTANDS
 
 CALIB_PERIOD = np.arange(
-    datetime.datetime.strptime('2011-01-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('1985-01-01', '%Y-%m-%d').date(),
     datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date())
 
 start_year = np.min(CALIB_PERIOD).astype(datetime.datetime).year

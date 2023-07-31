@@ -1,6 +1,3 @@
-# !/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 # builtins
 import sys
 import os
@@ -8,7 +5,6 @@ import time
 import logging
 from datetime import timedelta
 from logging.config import dictConfig
-import numpy as np
 import datetime
 import pathlib
 import pandas as pd
@@ -16,9 +12,11 @@ import joblib
 
 # externals
 import xarray as xr
+import cupy as cp
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
+from cuml.ensemble import RandomForestRegressor
+from cuml.metrics import r2_score
+from cuml.model_selection import train_test_split
 
 # locals
 from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset
@@ -42,6 +40,14 @@ from downscaleml.core.logging import log_conf
 # module level logger
 LOGGER = logging.getLogger(__name__)
 
+def stacker(xarray_dataset):
+    # stack along the lat and lon dimensions
+    stacked = xarray_dataset.stack()
+    dask_arr = stacked.to_array().data
+    array = dask_arr.T
+    array = cp.asarray(array)
+    LogConfig.init_log('Shape of the {} is in (spatial, time, variables):{}'.format(array, array.shape))
+    return array
 
 if __name__ == '__main__':
 
@@ -97,7 +103,7 @@ if __name__ == '__main__':
     # whether to use digital elevation model
     if DEM:
         # digital elevation model: Copernicus EU-Dem v1.1
-        dem = search_files(DEM_PATH, '^dem_1km.nc$').pop()
+        dem = search_files(DEM_PATH, '^interTwin_dem.nc$').pop()
 
         # read elevation and compute slope and aspect
         dem = ERA5Dataset.dem_features(
@@ -140,27 +146,35 @@ if __name__ == '__main__':
     predictand_train = Obs_train
     predictand_valid = Obs_valid
     
+    predictors_train = stacker(predictors_train)
+    predictors_valid = stacker(predictors_valid)
+    predictand_train = stacker(predictand_train)
+    predictand_valid = stacker(predictand_valid)
+    
+    LogConfig.init_log('GPU Dataset Initiations done!')
     # iterate over the grid points
     LogConfig.init_log('Downscaling by Random Forest Starts: iterating each grid cell over time dimension')
 
-    prediction = np.ones(shape=(len(predictors_valid.time), len(predictors_valid.y), len(predictors_valid.x))) * np.nan
-    for i, _ in enumerate(predictors_train.x):
-        for j, _ in enumerate(predictors_train.y):
+    prediction = cp.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0])) * cp.nan
+    
+    for i in range(predictors_train.shape[0]):
+        for j in range(predictors_train.shape[1]):
 
-            # current grid point: xarray.Dataset, dimensions=(time)
-            point_predictors = predictors_train.isel(x=i, y=j)
-            point_predictand = predictand_train.isel(x=i, y=j)
-
-            # convert xarray.Dataset to numpy.array: shape=(time, predictors)
-            point_predictors = point_predictors.to_array().values.swapaxes(0, 1)
-            point_predictand = point_predictand.to_array().values.squeeze()
+            point_predictors = predictors_train[i, j, :, :]
+            point_predictand = predictand_train[i, j, :, :]
 
             # check if the grid point is valid
-            if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
+            if cp.isnan(point_predictors).any() or cp.isnan(point_predictand).any():
                 # move on to next grid point
                 continue
 
-            LogConfig.init_log('Current grid point: ({:d}, {:d})'.format(j, i))    
+            # prepare predictors of validation period
+            point_validation = predictors_valid[i, j, :, :]
+            #point_validation = normalize(point_validation)
+
+            predictand_validation = predictand_valid[i, j, :, :]
+
+            LogConfig.init_log('Current grid point: ({:d}), ({:d}) '.format(i, j))    
             # normalize each predictor variable to [0, 1]
             # point_predictors = normalize(point_predictors)
 
@@ -169,19 +183,35 @@ if __name__ == '__main__':
 
             # train model on training data
             model.fit(point_predictors, point_predictand)
+            # predict validation period
+            pred = model.predict(point_validation)
+            LogConfig.init_log('Processing grid point: {:d}, {:d} - score: {:.2f}'.format(i, j, r2_score(predictand_validation, pred)))
 
-            model_file = "{}_{}_{}.joblib".format(str(state_file), j, i) 
+            # store predictions for current grid point
+            prediction[:, j, i] = pred
 
-            # save model with the index to use it later for any dataset with similar grid
-            joblib.dump(model, model_file)
-            LogConfig.init_log('Model saved for the current grid point: Saved({:d}, {:d})'.format(j, i))
-    
     LogConfig.init_log('Model ensemble saved and Indexed')
-            
-    
-    
-    
-        
-
     
 
+    # store predictions in xarray.Dataset
+    predictions = xr.DataArray(data=prediction, dims=['time', 'y', 'x'],
+                            coords=dict(time=pd.date_range(Era5_valid.time.values[0],Era5_valid.time.values[-1], freq='D'),
+                                        lat=Obs_valid.y, lon=Obs_valid.x))
+    predictions = predictions.to_dataset(name=PREDICTAND)
+
+    predictions = predictions.set_index(
+        time='time',
+        y='lat',
+        x='lon'
+    )
+
+    # initialize network filename
+    predict_file = NAMING_Model.state_file(
+        NET, PREDICTAND, ERA5_PREDICTORS, ERA5_PLEVELS, dem=DEM,
+        dem_features=DEM_FEATURES, doy=DOY)
+
+    predictions.to_netcdf("{}/{}.nc".format(str(target.parent), str(predict_file)))
+
+    LogConfig.init_log('Prediction Saved!!! SMILE PLEASE')
+    
+    

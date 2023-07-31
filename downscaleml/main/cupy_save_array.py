@@ -8,17 +8,16 @@ import time
 import logging
 from datetime import timedelta
 from logging.config import dictConfig
-import numpy as np
 import datetime
 import pathlib
 import pandas as pd
 import joblib
+import numpy as np
+import pickle
 
 # externals
 import xarray as xr
-
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
+import cupy as cp
 
 # locals
 from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset
@@ -97,7 +96,7 @@ if __name__ == '__main__':
     # whether to use digital elevation model
     if DEM:
         # digital elevation model: Copernicus EU-Dem v1.1
-        dem = search_files(DEM_PATH, '^dem_1km.nc$').pop()
+        dem = search_files(DEM_PATH, '^interTwin_dem.nc$').pop()
 
         # read elevation and compute slope and aspect
         dem = ERA5Dataset.dem_features(
@@ -140,43 +139,35 @@ if __name__ == '__main__':
     predictand_train = Obs_train
     predictand_valid = Obs_valid
     
-    # iterate over the grid points
-    LogConfig.init_log('Downscaling by Random Forest Starts: iterating each grid cell over time dimension')
-
-    prediction = np.ones(shape=(len(predictors_valid.time), len(predictors_valid.y), len(predictors_valid.x))) * np.nan
-    for i, _ in enumerate(predictors_train.x):
-        for j, _ in enumerate(predictors_train.y):
-
-            # current grid point: xarray.Dataset, dimensions=(time)
-            point_predictors = predictors_train.isel(x=i, y=j)
-            point_predictand = predictand_train.isel(x=i, y=j)
-
-            # convert xarray.Dataset to numpy.array: shape=(time, predictors)
-            point_predictors = point_predictors.to_array().values.swapaxes(0, 1)
-            point_predictand = point_predictand.to_array().values.squeeze()
-
-            # check if the grid point is valid
-            if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
-                # move on to next grid point
-                continue
-
-            LogConfig.init_log('Current grid point: ({:d}, {:d})'.format(j, i))    
-            # normalize each predictor variable to [0, 1]
-            # point_predictors = normalize(point_predictors)
-
-            # instanciate the model for the current grid point
-            model = RandomForestRegressor()
-
-            # train model on training data
-            model.fit(point_predictors, point_predictand)
-
-            model_file = "{}_{}_{}.joblib".format(str(state_file), j, i) 
-
-            # save model with the index to use it later for any dataset with similar grid
-            joblib.dump(model, model_file)
-            LogConfig.init_log('Model saved for the current grid point: Saved({:d}, {:d})'.format(j, i))
+    predictors_train_gpu = cp.asarray(predictors_train)
     
-    LogConfig.init_log('Model ensemble saved and Indexed')
+    # iterate over the grid points
+    LogConfig.init_log('Entering Saving Grid Cupy Arrays for Feeding it into the RF Model')
+
+    for i, _ in enumerate(predictors_train.x):
+        grid_array_predictors = {}
+        grid_array_vali_predictors = {}
+        for j, _ in enumerate(predictors_train.y):
+            LogConfig.init_log('Current grid point: ({:d}, {:d})'.format(j, i))    
+            # convert xarray.Dataset to numpy.array: shape=(time, predictors)
+            point_predictors = predictors_train.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
+            
+            # prepare predictors of validation period
+            point_validation = predictors_valid.isel(x=i, y=j).to_array().values.swapaxes(0, 1)
+            
+            grid_array_predictors[(j, i)] = point_predictors
+            grid_array_vali_predictors[(j, i)] = point_validation
+        
+        with open('ga_predictors_{}.pkl'.format(i), 'wb') as f:
+            pickle.dump(grid_array_predictors, f)
+        
+        with open('ga_predictors_valid_{}.pkl'.format(i), 'wb') as f:
+            pickle.dump(grid_array_vali_predictors, f)
+
+    
+            
+                
+            
             
     
     
