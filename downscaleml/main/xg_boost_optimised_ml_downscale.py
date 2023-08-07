@@ -5,6 +5,7 @@ import time
 import logging
 from datetime import timedelta
 from logging.config import dictConfig
+import numpy as np
 import datetime
 import pathlib
 import pandas as pd
@@ -12,10 +13,9 @@ import joblib
 
 # externals
 import xarray as xr
-import cupy as cp
 
-from cuml.ensemble import RandomForestRegressor
-from cuml.metrics import r2_score
+from xgboost import XGBRegressor
+from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 
 # locals
@@ -44,10 +44,9 @@ def stacker(xarray_dataset):
     # stack along the lat and lon dimensions
     stacked = xarray_dataset.stack()
     dask_arr = stacked.to_array().data
-    array = dask_arr.T
-    array = cp.asarray(array)
-    LogConfig.init_log('Shape of the {} is in (spatial, time, variables):{}'.format(array, array.shape))
-    return array
+    xarray_dataset = dask_arr.T
+    LogConfig.init_log('Shape of the {} is in (spatial, time, variables):{}'.format(xarray_dataset, xarray_dataset.shape))
+    return xarray_dataset
 
 if __name__ == '__main__':
 
@@ -136,6 +135,11 @@ if __name__ == '__main__':
         Era5_valid, Obs_valid = Era5_ds.sel(time=valid), Obs_ds.sel(time=valid)
     else:
         LogConfig.init_log('We are not calculating Stratified Precipitation based on Wet Days here!')
+        
+    lat = slice(0, 25)
+    lon = slice(0, 20)
+    Era5_ds =  Era5_ds.isel(x=lon, y=lat)
+    Obs_ds =  Obs_ds.isel(x=lon, y=lat)
 
     # training and validation dataset
     Era5_train, Obs_train = Era5_ds.sel(time=CALIB_PERIOD), Obs_ds.sel(time=CALIB_PERIOD)
@@ -146,16 +150,16 @@ if __name__ == '__main__':
     predictand_train = Obs_train
     predictand_valid = Obs_valid
     
-    predictors_train = stacker(predictors_train)
-    predictors_valid = stacker(predictors_valid)
+    predictors_train = stacker(predictors_train).compute()
+    predictors_valid = stacker(predictors_valid).compute()
     predictand_train = stacker(predictand_train)
     predictand_valid = stacker(predictand_valid)
     
-    LogConfig.init_log('GPU Dataset Initiations done!')
+    LogConfig.init_log('Dask computations done!')
     # iterate over the grid points
     LogConfig.init_log('Downscaling by Random Forest Starts: iterating each grid cell over time dimension')
 
-    prediction = cp.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0])) * cp.nan
+    prediction = np.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0])) * np.nan
     
     for i in range(predictors_train.shape[0]):
         for j in range(predictors_train.shape[1]):
@@ -164,7 +168,7 @@ if __name__ == '__main__':
             point_predictand = predictand_train[i, j, :, :]
 
             # check if the grid point is valid
-            if cp.isnan(point_predictors).any() or cp.isnan(point_predictand).any():
+            if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
                 # move on to next grid point
                 continue
 
@@ -179,7 +183,7 @@ if __name__ == '__main__':
             # point_predictors = normalize(point_predictors)
 
             # instanciate the model for the current grid point
-            model = RandomForestRegressor()
+            model = XGBRegressor()
 
             # train model on training data
             model.fit(point_predictors, point_predictand)
