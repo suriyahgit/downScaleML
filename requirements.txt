@@ -7,3 +7,4 @@ scikit_learn==1.2.2
 setuptools==66.0.0
 torch==2.0.0
 xarray==2023.3.0
+matplotlib==3.7.1
