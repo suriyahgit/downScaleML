@@ -61,7 +61,7 @@ if DEM:
 #NET = "AdaBoostRegressor"
 #NET = "LGBMRegressor"
 
-NET = "AdaBoostRegressor"
+NET="AdaBoostRegressor"
 assert NET in MODELS
 
 PREDICTAND='tasmax'
