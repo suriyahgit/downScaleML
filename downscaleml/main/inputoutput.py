@@ -1,6 +1,6 @@
 import pathlib
 
-NET = "RandomForest"
+
 
 ROOT = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/larger_alps/')
 

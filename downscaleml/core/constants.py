@@ -48,6 +48,8 @@ YEARS = list(range(1981, 2021))
 
 CERRA_VARIABLES = ["total_precipitation", "2m_temperature"]
 
+MODELS = ["RandomForestRegressor", "XGBRegressor", "AdaBoostRegressor", "LGBMRegressor"]
+
 
 class Gdal2Numpy(enum.Enum):
     """Data type mapping from gdal to numpy."""

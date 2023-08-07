@@ -20,6 +20,7 @@ xgboost = "1.7.6"
 cdo = "1.6.0"
 netcdf4 = "1.6.4"
 h5netcdf = "1.2.0"
+matplotlib = "3.7.1"
 
 
 [build-system]

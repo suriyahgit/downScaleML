@@ -36,7 +36,11 @@ from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORT
 
 from downscaleml.core.utils import NAMING_Model, normalize, search_files, LogConfig
 from downscaleml.core.logging import log_conf
-    
+
+# Initialize UCX for high-speed transport of CUDA arrays
+from dask_cuda import LocalCUDACluster
+from dask.distributed import Client
+
 # module level logger
 LOGGER = logging.getLogger(__name__)
 
@@ -53,6 +57,14 @@ if __name__ == '__main__':
 
     # initialize timing
     start_time = time.monotonic()
+
+    # Create a Dask single-node CUDA cluster w/ one worker per device
+    cluster = LocalCUDACluster(protocol="ucx",
+                            enable_tcp_over_ucx=True,
+                            enable_nvlink=True,
+                            enable_infiniband=False)
+    
+    client = Client(cluster)
 
     # initialize network filename
     state_file = NAMING_Model.state_file(
