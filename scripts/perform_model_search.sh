@@ -18,11 +18,6 @@ TAS='["mean_sea_level_pressure", "2m_temperature"]'
 
 PR='["mean_sea_level_pressure", "total_precipitation"]'
 
-ERA5_PR="p_REANALYSIS"
-
-ERA5_TAS="REANALYSIS"
-
-
 # iterate over predictands
 for predictand in ${PREDICTAND[@]}; do
 
@@ -32,7 +27,6 @@ for predictand in ${PREDICTAND[@]}; do
 
     # SGD with fixed and cyclic learning rate policy
     if [ "$predictand" = "pr" ]; then
-        sed -i "s/ERA5\s*=.*/ERA5=$ERA5_PR/" ./downscaleml/main/inputoutput.py
         sed -i "s/ERA5_S_PREDICTORS\s*=.*/ERA5_S_PREDICTORS=$PR/" ./downscaleml/main/config.py
         sed -i "s/STRATIFY\s*=.*/STRATIFY = True/" ./downscaleml/main/config.py
         
@@ -48,11 +42,10 @@ for predictand in ${PREDICTAND[@]}; do
                 echo "Model = $model"
 
                 # run downscaling
-                python downscaleml/main/program_ml_downscale.py
+                echo "Running: python downscaleml/main/program_ml_downscale.py"
             done
         done
     else
-        sed -i "s/ERA5\s*=.*/ERA5=$ERA5_TAS/" ./downscaleml/main/inputoutput.py
         sed -i "s/ERA5_S_PREDICTORS\s*=.*/ERA5_S_PREDICTORS=$TAS/" ./downscaleml/main/config.py
         sed -i "s/STRATIFY\s*=.*/STRATIFY = False/" ./downscaleml/main/config.py
         
@@ -63,7 +56,7 @@ for predictand in ${PREDICTAND[@]}; do
             echo "Model = $model"
 
             # run downscaling
-            python downscaleml/main/program_ml_downscale.py
+            echo "python downscaleml/main/program_ml_downscale.py"
         done
     fi
 done

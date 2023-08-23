@@ -19,7 +19,7 @@ OVERWRITE = False
 DEM_FEATURES = True
 
 # stratify training/validation set for precipitation by number of wet days
-STRATIFY = False
+STRATIFY = True
 
 # size of the validation set w.r.t. the training set
 # e.g., VALID_SIZE = 0.2 means: 80% of CALIB_PERIOD for training
@@ -29,7 +29,7 @@ VALID_SIZE = 0.2
 CHUNKS = {'time': 365}
 
 # threshold  defining the minimum amount of precipitation (mm) for a wet day
-WET_DAY_THRESHOLD = 1
+WET_DAY_THRESHOLD=3
 
 
 ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
@@ -39,9 +39,9 @@ ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
 assert all([var in ERA5_P_VARIABLES for var in ERA5_P_PREDICTORS])
 
 # ERA5 predictor variables on single levels
-ERA5_S_PREDICTORS = ['mean_sea_level_pressure', 'total_precipitation']
+ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
 
-#ERA5_S_PREDICTORS = ['total_precipitation']
+#ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
 assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
 
 # ERA5 predictor variables
@@ -56,15 +56,15 @@ if DEM:
     if 'orography' in ERA5_S_PREDICTORS:
         ERA5_S_PREDICTORS.remove('orography')
 
-#NET = "RandomForestRegressor"
-#NET = "XGBRegressor"
-#NET = "AdaBoostRegressor"
-#NET = "LGBMRegressor"
+#NET='XGBRegressor'
+#NET='XGBRegressor'
+#NET='XGBRegressor'
+#NET='XGBRegressor'
 
-NET="AdaBoostRegressor"
+NET='XGBRegressor'
 assert NET in MODELS
 
-PREDICTAND='tasmax'
+PREDICTAND='pr'
 assert PREDICTAND in PREDICTANDS
 
 CALIB_PERIOD = np.arange(
