@@ -63,8 +63,8 @@ def rename_file(old_path, new_path):
 
 class NAMING_Model:
     @staticmethod
-    def state_file(NET, predictand, predictors, plevels, dem=False,
-                   dem_features=False, doy=False):
+    def state_file(NET, predictand, predictors, plevels, wet_day, dem=False,
+                   dem_features=False, doy=False, stratify=False):
         
         Ppredictors = ''.join([ERA5_P_VARIABLE_NAME[p] for p in predictors if p
                                in ERA5_P_VARIABLE_NAME])
@@ -82,6 +82,9 @@ class NAMING_Model:
         state_file = ('_'.join([state_file, Spredictors]) if
                       any([p in ERA5_S_VARIABLE_NAME for p in predictors]) else
                       state_file)
+        
+        state_file = '_'.join([state_file, str(wet_day)]) if stratify else state_file
+        state_file = ''.join([state_file,'mm']) if stratify else state_file
 
         # check whether digital elevation model, slope and aspect, and the day
         # of year were used

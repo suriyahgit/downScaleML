@@ -29,7 +29,7 @@ VALID_SIZE = 0.2
 CHUNKS = {'time': 365}
 
 # threshold  defining the minimum amount of precipitation (mm) for a wet day
-WET_DAY_THRESHOLD=3
+WET_DAY_THRESHOLD=0
 
 
 ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
@@ -56,12 +56,12 @@ if DEM:
     if 'orography' in ERA5_S_PREDICTORS:
         ERA5_S_PREDICTORS.remove('orography')
 
-#NET='XGBRegressor'
-#NET='XGBRegressor'
-#NET='XGBRegressor'
-#NET='XGBRegressor'
+#NET='RandomForestRegressor'
+#NET='RandomForestRegressor'
+#NET='RandomForestRegressor'
+#NET='RandomForestRegressor'
 
-NET='XGBRegressor'
+NET='RandomForestRegressor'
 assert NET in MODELS
 
 PREDICTAND='pr'
