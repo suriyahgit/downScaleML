@@ -7,7 +7,8 @@ conda activate climax
 cd /home/sdhinakaran/eurac/downScaleML/
 
 # predictands
-PREDICTAND=(tasmin tasmax tasmean pr)
+#PREDICTAND=(tasmin tasmax tasmean pr)
+PREDICTAND=(pr)
 
 # wet day thresholds to test
 WET_DAY_THRESHOLDS=(0 0.5 1 2 3 5)
@@ -18,9 +19,9 @@ TAS='["mean_sea_level_pressure", "2m_temperature"]'
 
 PR='["mean_sea_level_pressure", "total_precipitation"]'
 
-ERA5_PR="p_REANALYSIS"
+ERA5_PR='"p_REANALYSIS"'
 
-ERA5_TAS="REANALYSIS"
+ERA5_TAS='"REANALYSIS"'
 
 
 # iterate over predictands
