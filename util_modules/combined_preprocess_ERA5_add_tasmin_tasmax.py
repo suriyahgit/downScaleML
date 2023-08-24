@@ -47,7 +47,7 @@ if __name__ == '__main__':
         if args.variable is not None:
             variables = args.variable
 
-        # iterate over the variables to pr- eprocess
+        # iterate over the variables to pre-process
         for var in variables:
             # path to files of the current variable
             source = sorted(search_files(
@@ -67,12 +67,35 @@ if __name__ == '__main__':
             # check if aggregated file exists
             filename = '_'.join(['ERA5', var, ymin, ymax]) + '.nc'
             filename = args.target.joinpath(var, filename)
+            
+            if var == "2m_temperature":
+                # check if aggregated file exists
+                filename_tasmin = '_'.join(['ERA5_2m_tasmin', var, ymin, ymax]) + '.nc'
+                filename_tasmin = args.target.joinpath("2m_tasmin", filename_tasmin)
+                filename_tasmax = '_'.join(['ERA5_2m_tasmax', var, ymin, ymax]) + '.nc'
+                filename_tasmax = args.target.joinpath("2m_tasmax", filename_tasmax)
+                
+            if not filename_tasmin.parent.exists():
+                LOGGER.info('mkdir {}'.format(filename_tasmin.parent))
+                filename_tasmin.parent.mkdir(parents=True, exist_ok=True)
+            if filename_tasmin.exists() and not args.overwrite:
+                LOGGER.info('{} already exists.'.format(filename_tasmin))
+                continue
+                
+            if not filename_tasmax.parent.exists():
+                LOGGER.info('mkdir {}'.format(filename_tasmax.parent))
+                filename_tasmax.parent.mkdir(parents=True, exist_ok=True)
+            if filename_tasmax.exists() and not args.overwrite:
+                LOGGER.info('{} already exists.'.format(filename_tasmax))
+                continue
+                
             if not filename.parent.exists():
                 LOGGER.info('mkdir {}'.format(filename.parent))
                 filename.parent.mkdir(parents=True, exist_ok=True)
             if filename.exists() and not args.overwrite:
                 LOGGER.info('{} already exists.'.format(filename))
                 continue
+            
 
             # create filenames for resampled files
             dlyavg = [args.target.joinpath(var, f.name.replace('.nc', '_d.nc'))
