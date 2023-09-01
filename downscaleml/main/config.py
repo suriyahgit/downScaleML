@@ -29,7 +29,7 @@ VALID_SIZE = 0.2
 CHUNKS = {'time': 365}
 
 # threshold  defining the minimum amount of precipitation (mm) for a wet day
-WET_DAY_THRESHOLD=0
+WET_DAY_THRESHOLD=5
 
 
 ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
