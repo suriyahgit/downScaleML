@@ -13,7 +13,8 @@ PREDICTAND=(pr)
 # wet day thresholds to test
 WET_DAY_THRESHOLDS=(0 0.5 1 2 3 5)
 
-MODELS=(RandomForestRegressor XGBRegressor AdaBoostRegressor LGBMRegressor)
+#MODELS=(RandomForestRegressor XGBRegressor AdaBoostRegressor LGBMRegressor)
+MODELS=(RandomForestRegressor)
 
 TAS='["mean_sea_level_pressure", "2m_temperature"]'
 

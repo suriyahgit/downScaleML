@@ -210,11 +210,11 @@ if __name__ == '__main__':
         y='lat',
         x='lon'
     )
-
+    
     # initialize network filename
     predict_file = NAMING_Model.state_file(
-        NET, PREDICTAND, ERA5_PREDICTORS, ERA5_PLEVELS, dem=DEM,
-        dem_features=DEM_FEATURES, doy=DOY)
+        NET, PREDICTAND, ERA5_PREDICTORS, ERA5_PLEVELS, WET_DAY_THRESHOLD, dem=DEM,
+        dem_features=DEM_FEATURES, doy=DOY, stratify=STRATIFY)
 
     predictions.to_netcdf("{}/{}.nc".format(str(target.parent), str(predict_file)))
 

@@ -1,0 +1,15 @@
+channels:
+  - conda-forge
+dependencies:
+  - dask
+  - GDAL=3.4.3
+  - joblib
+  - numpy
+  - pandas
+  - scikit-learn
+  - setuptools
+  - pytorch
+  - xarray
+  - matplotlib=3.7.1
+  - xgboost
+  - lightgbm
