@@ -1,3 +1,4 @@
+name: downscaleml
 channels:
   - conda-forge
 dependencies:
