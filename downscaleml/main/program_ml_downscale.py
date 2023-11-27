@@ -138,7 +138,7 @@ if __name__ == '__main__':
     # training and validation dataset
     Era5_train, Obs_train = Era5_ds.sel(time=CALIB_PERIOD), Obs_ds.sel(time=CALIB_PERIOD)
     Era5_valid, Obs_valid = Era5_ds.sel(time=VALID_PERIOD), Obs_ds.sel(time=VALID_PERIOD)
-    
+
     predictors_train = Era5_train
     predictors_valid = Era5_valid
     predictand_train = Obs_train

@@ -20,4 +20,4 @@ RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/larger_
 
 MODEL_PATH = RESULTS.joinpath('ml_Models')
 
-TARGET_PATH = RESULTS.joinpath('ml_Predictions')
+TARGET_PATH = RESULTS.joinpath('TEST_PRED')
