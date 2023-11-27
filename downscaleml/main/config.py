@@ -39,7 +39,7 @@ ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
 assert all([var in ERA5_P_VARIABLES for var in ERA5_P_PREDICTORS])
 
 # ERA5 predictor variables on single levels
-ERA5_S_PREDICTORS=["mean_sea_level_pressure", "2m_temperature"]
+ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
 
 #ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
 assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
@@ -64,7 +64,7 @@ if DEM:
 NET='LGBMRegressor'
 assert NET in MODELS
 
-PREDICTAND='tasmean'
+PREDICTAND='pr'
 assert PREDICTAND in PREDICTANDS
 
 CALIB_PERIOD = np.arange(
