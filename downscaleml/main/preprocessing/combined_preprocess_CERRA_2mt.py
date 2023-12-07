@@ -49,10 +49,8 @@ if __name__ == '__main__':
         # iterate over the variables to pre-process
         for var in variables:
             # path to files of the current variable
-            if var == "2m_temperature":
-                    
             source = sorted(search_files(
-                args.source, '_'.join(['^CERRA', var, '[0-9]{4}.nc$'])))
+                args.source, '_'.join(['^CERRA', var, '[0-9]{4}_regridded.nc$'])))
             ymin, ymax = (re.search('[0-9]{4}', source[0].name)[0],
                           re.search('[0-9]{4}', source[-1].name)[0])
             LogConfig.init_log('Aggregating CERRA years: {}'.format(
@@ -105,7 +103,10 @@ if __name__ == '__main__':
             # xarray and dask
             LOGGER.info('Aggregating different years into single file ...')
             ds = xr.open_mfdataset(source, concat_dim='time', combine='nested', parallel=True)
- 
+            if var == "2m_temperature":
+                ds_max = ds
+                ds_min = ds
+
             # aggregate hourly data to daily data: resample in case of missing
             # days
             LOGGER.info('Computing daily averages, min and max for temperature ...' if var !=
@@ -122,24 +123,27 @@ if __name__ == '__main__':
                 LOGGER.info('Total Precipitation Dataset manipulation done!')
                 
             if var == "2m_temperature":
-                ds_mean = ds.resample(time='D').mean(dim='time')
-                ds_max = ds.resample(time='D').max(dim='time')
-                ds_min = ds.resample(time='D').min(dim='time')
-
-                LOGGER.info('2m_temperature Dataset manipulation done!')
-
-                ds_max.to_netcdf(filename_resampled_tasmax, engine='h5netcdf')
-                ds_min.to_netcdf(filename_resampled_tasmin, engine='h5netcdf')
-
-                LOGGER.info('Check if it reached here!')
-
-            # save intermediate file for resampling and reprojection to
-            # target grid
-            if not filename_resampled.exists():
-                ds_mean.to_netcdf(filename_resampled, engine='h5netcdf')
+                if not (filename_resampled.exists() or filename_resampled_tasmax.exists() or filename_resampled_tasmin.exists()):
+                    ds = ds.resample(time='D').mean(dim='time')
+                    ds.to_netcdf(filename_resampled, engine='h5netcdf')
+                    del ds
+                    LOGGER.info('tasmean Dataset manipulation done!')
+                    ds_max = ds_max.resample(time='D').max(dim='time')
+                    ds_max.to_netcdf(filename_resampled_tasmax, engine='h5netcdf')
+                    del ds_max
+                    LOGGER.info('tasmax Dataset manipulation done!')
+                    ds_min = ds_min.resample(time='D').min(dim='time')
+                    ds_min.to_netcdf(filename_resampled_tasmin, engine='h5netcdf')
+                    del ds_min
+                    LOGGER.info('tasmax Dataset manipulation done!')
+                    LOGGER.info('Check if it reached here!')
 
             LOGGER.info('Dataset Saved Successfully')
+            ds = xr.open_dataset(str(filename_resampled))
+            ds_min = xr.open_dataset(str(filename_resampled_tasmin))
+            ds_max = xr.open_dataset(str(filename_resampled_tasmax))
 
+            LOGGER.info('Dataset loaded Successfully, this is done to offload memory in RAM while resampling!')
             # reproject and resample to target grid in parallel
             if args.reproject:
                 LOGGER.info('Reprojecting and resampling to target grid ...')
@@ -160,10 +164,10 @@ if __name__ == '__main__':
                 LOGGER.info('Reprojection done! and the file saved successfully')
                 ds = xr.open_dataset(reprojected_path)
             
-            filename_resampled.unlink()
-            if var == "2m_temperature":
-                filename_resampled_tasmax.unlink()
-                filename_resampled_tasmin.unlink()
+                filename_resampled.unlink()
+                if var == "2m_temperature":
+                    filename_resampled_tasmax.unlink()
+                    filename_resampled_tasmin.unlink()
 
             # set NetCDF file compression for each variable
             if args.compress:
@@ -179,6 +183,15 @@ if __name__ == '__main__':
                     for _, vari in ds_min.data_vars.items():
                         vari.encoding['zlib'] = True
                         vari.encoding['complevel'] = 5
+
+                    if filename_resampled.exists():
+                        filename_resampled.unlink()
+
+                    if filename_resampled_tasmax.exists():
+                        filename_resampled_tasmax.unlink()
+
+                    if filename_resampled_tasmin.exists():
+                        filename_resampled_tasmax.unlink()
                 
                 if filename_reprojected.exists():
                     filename_reprojected.unlink()
@@ -195,6 +208,8 @@ if __name__ == '__main__':
             if var == "2m_temperature":
                 ds_max.to_netcdf(filename_tasmin, engine='h5netcdf')
                 ds_min.to_netcdf(filename_tasmax, engine='h5netcdf')
+
+            LOGGER.info('If you reached here, Have a coffee break!')
             
     else:
         LOGGER.info('{} or/and {} does not exist.'.format(str(args.source), str(args.target)))
