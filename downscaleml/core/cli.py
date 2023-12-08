@@ -171,9 +171,14 @@ def preprocess_cerra_parser():
     # default values
     default = '(default: %(default)s)'
     
-    # optional positional argument: path to save the reprojected NetCDF files
+    # optional positional argument: path to save the aggregated CERRA NetCDF files
     parser.add_argument('--target', type=pathlib.Path,
                         help='Path to save the aggregated CERRA NetCDF files.', 
+                        nargs='?')
+
+    # optional positional argument: path to save the reprojected NetCDF files
+    parser.add_argument('--target_regrid', type=pathlib.Path,
+                        help='Path to save the reprojected NetCDF files.', 
                         nargs='?')
 
 

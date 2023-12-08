@@ -135,7 +135,7 @@ if __name__ == '__main__':
                     ds_min = ds_min.resample(time='D').min(dim='time')
                     ds_min.to_netcdf(filename_resampled_tasmin, engine='h5netcdf')
                     del ds_min
-                    LOGGER.info('tasmax Dataset manipulation done!')
+                    LOGGER.info('tasmin Dataset manipulation done!')
                     LOGGER.info('Check if it reached here!')
 
             LOGGER.info('Dataset Saved Successfully')
