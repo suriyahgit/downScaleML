@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/CERRA_qa_regridded/", "--target", "/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/qa_spatial_domain/CERRA/", "--compress", "--variable", "2m_temperature"],
+            "args": ["/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/CERRA/", "--target_regrid","/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/CERRA_regrid_only", "--target", "/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/qa_spatial_domain/CERRA_input/","--reproject","--grid","/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/qa_spatial_domain/qa_interTwin_domain_grid_file", "--mode", "bilinear", "--compress"],
             "justMyCode": true
         }
     ]
