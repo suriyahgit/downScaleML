@@ -29,7 +29,7 @@ VALID_SIZE = 0.2
 CHUNKS = {'time': 365}
 
 # threshold  defining the minimum amount of precipitation (mm) for a wet day
-WET_DAY_THRESHOLD=0
+WET_DAY_THRESHOLD=5
 
 
 ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
@@ -56,10 +56,10 @@ if DEM:
     if 'orography' in ERA5_S_PREDICTORS:
         ERA5_S_PREDICTORS.remove('orography')
 
-#NET='RandomForestRegressor'
-#NET='RandomForestRegressor'
-#NET='RandomForestRegressor'
-#NET='RandomForestRegressor'
+#NET='LGBMRegressor'
+#NET='LGBMRegressor'
+#NET='LGBMRegressor'
+#NET='LGBMRegressor'
 
 NET='LGBMRegressor'
 assert NET in MODELS
@@ -68,7 +68,7 @@ PREDICTAND='pr'
 assert PREDICTAND in PREDICTANDS
 
 CALIB_PERIOD = np.arange(
-    datetime.datetime.strptime('1985-01-02', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('1985-01-01', '%Y-%m-%d').date(),
     datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date())
 
 start_year = np.min(CALIB_PERIOD).astype(datetime.datetime).year
@@ -76,6 +76,6 @@ end_year = np.max(CALIB_PERIOD).astype(datetime.datetime).year
 
 # validation period: testing
 VALID_PERIOD = np.arange(
-    datetime.datetime.strptime('2016-01-02', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2016-08-01', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date())
 

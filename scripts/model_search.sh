@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 
 # activate conda environment
-conda activate climax
+micromamba activate check
 
 # move to project repository
 cd /home/sdhinakaran/eurac/downScaleML/
 
 # predictands
 #PREDICTAND=(tasmin tasmax tasmean pr)
-PREDICTAND=(pr)
+PREDICTAND=(tasmin tasmax tasmean pr)
 
 # wet day thresholds to test
 WET_DAY_THRESHOLDS=(0 0.5 1 2 3 5)
 
 #MODELS=(RandomForestRegressor XGBRegressor AdaBoostRegressor LGBMRegressor)
-MODELS=(RandomForestRegressor)
+MODELS=(LGBMRegressor)
 
 TAS='["mean_sea_level_pressure", "2m_temperature"]'
 
@@ -50,7 +50,7 @@ for predictand in ${PREDICTAND[@]}; do
                 echo "Model = $model"
 
                 # run downscaling
-                python downscaleml/main/program_ml_downscale.py
+                python downscaleml/main/program_ml_downscale_check_doy_hydro.py
             done
         done
     else
@@ -65,7 +65,7 @@ for predictand in ${PREDICTAND[@]}; do
             echo "Model = $model"
 
             # run downscaling
-            python downscaleml/main/program_ml_downscale.py
+            python downscaleml/main/program_ml_downscale_check_doy_hydro.py
         done
     fi
 done
