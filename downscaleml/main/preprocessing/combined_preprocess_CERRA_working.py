@@ -231,8 +231,8 @@ if __name__ == '__main__':
             LOGGER.info('Compressing NetCDF: {} output files'.format(var))
             ds.load().to_netcdf(filename, engine='h5netcdf')
             if var == "2m_temperature":
-                ds_max.to_netcdf(filename_tasmin, engine='h5netcdf')
-                ds_min.to_netcdf(filename_tasmax, engine='h5netcdf')
+                ds_max.to_netcdf(filename_tasmax, engine='h5netcdf')
+                ds_min.to_netcdf(filename_tasmin, engine='h5netcdf')
 
             LOGGER.info('If you reached here, Have a coffee break!')
             
