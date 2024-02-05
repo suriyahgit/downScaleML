@@ -20,4 +20,4 @@ RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/hydroMo
 
 MODEL_PATH = RESULTS.joinpath('RESULTS_model')
 
-TARGET_PATH = RESULTS.joinpath('RESULTS_1')
+TARGET_PATH = RESULTS.joinpath('grid_search')
