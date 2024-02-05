@@ -8,13 +8,14 @@ cd /home/sdhinakaran/eurac/downScaleML/
 
 # predictands
 #PREDICTAND=(tasmin tasmax tasmean pr)
-PREDICTAND=(tasmin tasmax tasmean pr)
+PREDICTAND=(tasmean pr)
 
 # wet day thresholds to test
-WET_DAY_THRESHOLDS=(0 0.5 1 2 3 5)
+#WET_DAY_THRESHOLDS=(0 0.5 1 2 3 5)
+WET_DAY_THRESHOLDS=(0)
 
 #MODELS=(RandomForestRegressor XGBRegressor AdaBoostRegressor LGBMRegressor)
-MODELS=(LGBMRegressor)
+MODELS=(RandomForestRegressor XGBRegressor AdaBoostRegressor)
 
 TAS='["mean_sea_level_pressure", "2m_temperature"]'
 
