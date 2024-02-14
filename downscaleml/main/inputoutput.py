@@ -16,8 +16,8 @@ OBS_PATH = ROOT.joinpath('CERRA')
 
 DEM_PATH = ROOT.joinpath('DEM')
 
-RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/hydroModelDownscale/')
+RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/testing_algo/')
 
 MODEL_PATH = RESULTS.joinpath('RESULTS_model')
 
-TARGET_PATH = RESULTS.joinpath('grid_search')
+TARGET_PATH = RESULTS.joinpath('RESULTS')
