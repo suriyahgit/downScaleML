@@ -68,7 +68,7 @@ PREDICTAND='tasmean'
 assert PREDICTAND in PREDICTANDS
 
 CALIB_PERIOD = np.arange(
-    datetime.datetime.strptime('2014-01-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('1985-01-01', '%Y-%m-%d').date(),
     datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date())
 
 start_year = np.min(CALIB_PERIOD).astype(datetime.datetime).year
@@ -77,5 +77,7 @@ end_year = np.max(CALIB_PERIOD).astype(datetime.datetime).year
 # validation period: testing
 VALID_PERIOD = np.arange(
     datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2016-12-31', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date())
+
+combination = 100
 
