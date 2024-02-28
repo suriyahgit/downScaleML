@@ -27,7 +27,7 @@ from downscaleml.main.config import (NET, ERA5_PLEVELS, ERA5_PREDICTORS, PREDICT
                                      CALIB_PERIOD, VALID_PERIOD, DOY, NORM,
                                      OVERWRITE, DEM, DEM_FEATURES, STRATIFY,
                                      WET_DAY_THRESHOLD, VALID_SIZE, 
-                                     start_year, end_year, CHUNKS)
+                                     start_year, end_year, CHUNKS, param)
 
 from downscaleml.main.inputoutput import (ERA5_PATH, OBS_PATH, DEM_PATH, MODEL_PATH, TARGET_PATH)
 
@@ -174,7 +174,8 @@ if __name__ == '__main__':
         'LGBMRegressor': LGBMRegressor,
     }
     Model_name = NET
-
+    model = Models[Model_name](**param)
+    
     prediction = np.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0])) * np.nan
     
     for i in range(predictors_train.shape[0]):
