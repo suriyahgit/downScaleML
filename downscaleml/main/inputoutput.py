@@ -1,6 +1,6 @@
 import pathlib
 
-ERA5="p_REANALYSIS"
+ERA5="REANALYSIS"
 #ERA5="p_REANALYSIS"
 
 ROOT = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/hydroModelDownscale/')

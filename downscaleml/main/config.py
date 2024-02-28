@@ -79,5 +79,30 @@ VALID_PERIOD = np.arange(
     datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date(),
     datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date())
 
-combination = 100
+combination = 49
 
+params = {'reg_alpha': 0.001018337175296235,
+ 'reg_lambda': 0.10078524608920145,
+ 'colsample_bytree': 0.7,
+ 'subsample': 0.8,
+ 'learning_rate': 0.01,
+ 'max_depth': 100,
+ 'num_leaves': 526,
+ 'min_child_samples': 59,
+ 'random_state': 48,
+ 'n_estimators': 20000,
+ 'metric': 'rmse',
+ 'cat_smooth': 91}
+
+paramss = {'reg_alpha': 0.008623170303712244, 
+           'reg_lambda': 0.0012155495918039461, 
+           'colsample_bytree': 1.0, 
+           'subsample': 1.0, 
+           'learning_rate': 0.008, 
+           'max_depth': 20, 
+           'num_leaves': 454, 
+           'min_child_samples': 54,
+           'random_state': 48,
+           'n_estimators': 20000,
+           'metric': 'rmse',
+           'cat_smooth': 91}
