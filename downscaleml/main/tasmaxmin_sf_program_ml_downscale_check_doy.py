@@ -21,7 +21,7 @@ from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 
 # locals
-from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset
+from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset, EoDataset
 
 from downscaleml.main.config import (NET, ERA5_PLEVELS, ERA5_PREDICTORS, PREDICTAND,
                                      CALIB_PERIOD, VALID_PERIOD, DOY, NORM,
@@ -29,7 +29,7 @@ from downscaleml.main.config import (NET, ERA5_PLEVELS, ERA5_PREDICTORS, PREDICT
                                      WET_DAY_THRESHOLD, VALID_SIZE, 
                                      start_year, end_year, CHUNKS)
 
-from downscaleml.main.inputoutput import (ERA5_PATH, OBS_PATH, DEM_PATH, MODEL_PATH, TARGET_PATH)
+from downscaleml.main.inputoutput import (ERA5_PATH, OBS_PATH, DEM_PATH, MODEL_PATH, TARGET_PATH, SEAS5_PATH)
 
 from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME,
                                         ERA5_S_VARIABLES, ERA5_S_VARIABLES_SHORTCUT, ERA5_S_VARIABLE_NAME,
@@ -47,18 +47,16 @@ def stacker(xarray_dataset):
     stacked = xarray_dataset.stack()
     dask_arr = stacked.to_array().data
     xarray_dataset = dask_arr.T
-    LogConfig.init_log('Shape of the {} is in (spatial, time, variables):{}'.format(xarray_dataset, xarray_dataset.shape))
+    LogConfig.init_log('Shape is in (spatial, time, variables):{}'.format(xarray_dataset.shape))
     return xarray_dataset
 
 def doy_encoding(X, y=None, doy=False):
-
     # whether to include the day of the year as predictor variable
     if doy:
         # add doy to set of predictor variables
         LOGGER.info('Adding day of the year to predictor variables ...')
         X = X.assign(EoDataset.encode_doys(X, chunks=X.chunks))
 
-    print(X)
     return X
 
 if __name__ == '__main__':
@@ -95,10 +93,18 @@ if __name__ == '__main__':
 
     # initialize ERA5 predictor dataset
     LogConfig.init_log('Initializing ERA5 predictors.')
-    Era5 = ERA5Dataset(ERA5_PATH.joinpath('ERA5'), ERA5_PREDICTORS,
+    Era5 = ERA5Dataset(ERA5_PATH.joinpath('ERA5_renamed'), ERA5_PREDICTORS,
                        plevels=ERA5_PLEVELS)
     Era5_ds = Era5.merge(chunks=CHUNKS)
-    Era5_ds = Era5_ds.rename({'lon': 'x','lat': 'y'})
+    
+    LogConfig.init_log('Initializing ERA5 predictors.')
+    
+    #TEMPORARY PATHWORK HERE - SOLVE IT FOR LATER
+    Seas5 = ERA5Dataset(SEAS5_PATH.joinpath(f'SEAS5/2016/'), ERA5_PREDICTORS,
+                       plevels=ERA5_PLEVELS)
+    Seas5_ds = Seas5.merge()
+    #Seas5_ds = Seas5_ds.rename({'longitude': 'x','latitude': 'y'})
+    
     
     # initialize OBS predictand dataset
     LogConfig.init_log('Initializing observations for predictand: {}'
@@ -112,20 +118,28 @@ if __name__ == '__main__':
     # whether to use digital elevation model
     if DEM:
         # digital elevation model: Copernicus EU-Dem v1.1
-        dem = search_files(DEM_PATH, '^interTwin_dem.nc$').pop()
+        dem_path = search_files(DEM_PATH, '^interTwin_dem.nc$').pop()
 
         # read elevation and compute slope and aspect
         dem = ERA5Dataset.dem_features(
-            dem, {'y': Era5_ds.y, 'x': Era5_ds.x},
+            dem_path, {'y': Era5_ds.y, 'x': Era5_ds.x},
             add_coord={'time': Era5_ds.time})
+        
+        dem_seas5 = ERA5Dataset.dem_features(
+            dem_path, {'y': Seas5_ds.y, 'x': Seas5_ds.x},
+            add_coord={'time': Seas5_ds.time})
 
         # check whether to use slope and aspect
         if not DEM_FEATURES:
             dem = dem.drop_vars(['slope', 'aspect']).chunk(Era5_ds.chunks)
+            dem_seas5 = dem_seas5.drop_vars(['slope', 'aspect']).chunk(Seas5_ds.chunks)
+
 
         # add dem to set of predictor variables
         dem = dem.chunk(Era5_ds.chunks)
+        dem_seas5 = dem_seas5.chunk(Seas5_ds.chunks)
         Era5_ds = xr.merge([Era5_ds, dem])
+        Seas5_ds = xr.merge([Seas5_ds, dem_seas5])
 
     # initialize training data
     LogConfig.init_log('Initializing training data.')
@@ -142,24 +156,39 @@ if __name__ == '__main__':
         # sort chronologically
         train, valid = sorted(train), sorted(valid)
         Era5_train, Obs_train = Era5_ds.sel(time=train), Obs_ds.sel(time=train)
-        Era5_valid, Obs_valid = Era5_ds.sel(time=valid), Obs_ds.sel(time=valid)
+        Seas5_ds, Obs_valid = Seas5_ds.sel(time=valid), Obs_ds.sel(time=valid)
     else:
         LogConfig.init_log('We are not calculating Stratified Precipitation based on Wet Days here!')
 
     # training and validation dataset
     Era5_train, Obs_train = Era5_ds.sel(time=CALIB_PERIOD), Obs_ds.sel(time=CALIB_PERIOD)
-    Era5_valid, Obs_valid = Era5_ds.sel(time=VALID_PERIOD), Obs_ds.sel(time=VALID_PERIOD)
+    Seas5_ds, Obs_valid = Seas5_ds.sel(time=VALID_PERIOD), Obs_ds.sel(time=VALID_PERIOD)
 
     Era5_train = doy_encoding(Era5_train, Obs_train, doy=DOY)
-    Era5_valid = doy_encoding(Era5_valid, Obs_valid, doy=DOY)
-
+    Seas5_ds = doy_encoding(Seas5_ds, Obs_valid, doy=DOY)
+    
     predictors_train = Era5_train
-    predictors_valid = Era5_valid
+    predictors_valid = Seas5_ds
     predictand_train = Obs_train
     predictand_valid = Obs_valid
+
+    LogConfig.init_log('Era5_Train')
+    print(Era5_train)
+    LogConfig.init_log('SEAS5_Training Data Here')
+    print(Seas5_ds)
     
+    variables = ['elevation', 'sin_doy', 'cos_doy']
+    Seas5_ds_split = Seas5_ds[variables]
+    Seas5_ds = Seas5_ds.drop_vars(variables)
+    Seas5_ds = Seas5_ds.merge(Seas5_ds_split.expand_dims(number=Seas5_ds['number']))
+    Seas5_ds = Seas5_ds.transpose('time', 'y', 'x', 'number')
+
+    print(Seas5_ds)
+
+    predictors_valid = stacker(predictors_valid)
+
+
     predictors_train = stacker(predictors_train).compute()
-    predictors_valid = stacker(predictors_valid).compute()
     predictand_train = stacker(predictand_train)
     predictand_valid = stacker(predictand_valid)
     
@@ -175,54 +204,75 @@ if __name__ == '__main__':
     }
     Model_name = NET
 
-    prediction = np.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0])) * np.nan
+    Era5_ds = None
+
+    LogConfig.init_log('predictand_valid shape[0] : {}'.format(predictand_valid.shape[0]))
+    LogConfig.init_log('predictand_valid shape[1] : {}'.format(predictand_valid.shape[1]))
+    LogConfig.init_log('predictand_valid shape[2] : {}'.format(predictand_valid.shape[2]))
+
+    LogConfig.init_log('predictors_train shape[0] : {}'.format(predictors_train.shape[0]))
+    LogConfig.init_log('predictors_train shape[1] : {}'.format(predictors_train.shape[1]))
+    LogConfig.init_log('predictors_train shape[2] : {}'.format(predictors_train.shape[2]))
+    LogConfig.init_log('predictors_valid shape[3] : {}'.format(predictors_train.shape[3]))
+
+    LogConfig.init_log('predictors_valid shape[0] : {}'.format(predictors_valid.shape[0]))
+    LogConfig.init_log('predictors_valid shape[1] : {}'.format(predictors_valid.shape[1]))
+    LogConfig.init_log('predictors_valid shape[2] : {}'.format(predictors_valid.shape[2]))
+    LogConfig.init_log('predictors_valid shape[3] : {}'.format(predictors_valid.shape[3]))
+    LogConfig.init_log('predictors_valid shape[3] : {}'.format(predictors_valid.shape[4]))
+
+    prediction = np.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0], predictors_valid.shape[0])) * np.nan
     
-    for i in range(predictors_train.shape[0]):
-        for j in range(predictors_train.shape[1]):
+    for m in range(predictors_valid.shape[0]):
+        point_valid = predictors_valid[m, :, :, :, :].compute()
+        for i in range(predictors_train.shape[0]):
+            for j in range(predictors_train.shape[1]):
 
-            point_predictors = predictors_train[i, j, :, :]
-            point_predictand = predictand_train[i, j, :, :]
+                point_predictors = predictors_train[i, j, :, :]
+                point_predictors = normalize(point_predictors)
+                point_predictand = predictand_train[i, j, :, :]
 
-            # check if the grid point is valid
-            if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
-                # move on to next grid point
-                continue
+                # check if the grid point is valid
+                if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
+                    # move on to next grid point
+                    continue
 
-            # prepare predictors of validation period
-            point_validation = predictors_valid[i, j, :, :]
-            #point_validation = normalize(point_validation)
+                # prepare predictors of validation period
+                point_validation = point_valid[i, j, :, :]
+                point_validation = normalize(point_validation)
 
-            predictand_validation = predictand_valid[i, j, :, :]
+                predictand_validation = predictand_valid[i, j, :, :]
 
-            LogConfig.init_log('Current grid point: ({:d}), ({:d}) '.format(i, j))    
-            # normalize each predictor variable to [0, 1]
-            # point_predictors = normalize(point_predictors)
+                LogConfig.init_log('Current grid point: ({:d}), ({:d}), ({:d}) '.format(m, i, j))    
+                # normalize each predictor variable to [0, 1]
+                # point_predictors = normalize(point_predictors)
 
-            # instanciate the model for the current grid point
-            model = Models[Model_name]()
+                # instanciate the model for the current grid point
+                model = Models[Model_name]()
 
-            # train model on training data
-            model.fit(point_predictors, point_predictand)
-            # predict validation period
-            pred = model.predict(point_validation)
-            LogConfig.init_log('Processing grid point: {:d}, {:d} - score: {:.2f}'.format(i, j, r2_score(predictand_validation, pred)))
+                # train model on training data
+                model.fit(point_predictors, point_predictand)
+                # predict validation period
+                pred = model.predict(point_validation)
+                LogConfig.init_log('Processing grid point: {:d}, {:d}, {:d} - score: {:.2f}'.format(m, i, j, r2_score(predictand_validation, pred)))
 
-            # store predictions for current grid point
-            prediction[:, j, i] = pred
+                # store predictions for current grid point
+                prediction[:, j, i, m] = pred
 
     LogConfig.init_log('Model ensemble saved and Indexed')
     
 
     # store predictions in xarray.Dataset
-    predictions = xr.DataArray(data=prediction, dims=['time', 'y', 'x'],
-                            coords=dict(time=pd.date_range(Era5_valid.time.values[0],Era5_valid.time.values[-1], freq='D'),
-                                        lat=Obs_valid.y, lon=Obs_valid.x))
+    predictions = xr.DataArray(data=prediction, dims=['time', 'y', 'x', 'number'],
+                            coords=dict(time=pd.date_range(Seas5_ds.time.values[0],Seas5_ds.time.values[-1], freq='D'),
+                                        lat=Obs_valid.y, lon=Obs_valid.x, number=Seas5_ds.number))
     predictions = predictions.to_dataset(name=PREDICTAND)
 
     predictions = predictions.set_index(
         time='time',
         y='lat',
-        x='lon'
+        x='lon',
+        number='number'
     )
     
     # initialize network filename
@@ -232,6 +282,6 @@ if __name__ == '__main__':
 
     predictions.to_netcdf("{}/{}.nc".format(str(target.parent), str(predict_file)))
 
-    LogConfig.init_log('Prediction Saved!!! SMILE PLEASE')
+    LogConfig.init_log('Prediction Saved!!! SMILE PLEASE!!')
     
     

@@ -21,7 +21,7 @@ from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 
 # locals
-from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset
+from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset, EoDataset
 
 from downscaleml.main.config import (NET, ERA5_PLEVELS, ERA5_PREDICTORS, PREDICTAND,
                                      CALIB_PERIOD, VALID_PERIOD, DOY, NORM,
@@ -47,7 +47,7 @@ def stacker(xarray_dataset):
     stacked = xarray_dataset.stack()
     dask_arr = stacked.to_array().data
     xarray_dataset = dask_arr.T
-    LogConfig.init_log('Shape of the {} is in (spatial, time, variables):{}'.format(xarray_dataset, xarray_dataset.shape))
+    LogConfig.init_log('Shape is in (spatial, time, variables):{}'.format(xarray_dataset.shape))
     return xarray_dataset
 
 def doy_encoding(X, y=None, doy=False):
@@ -57,7 +57,6 @@ def doy_encoding(X, y=None, doy=False):
         LOGGER.info('Adding day of the year to predictor variables ...')
         X = X.assign(EoDataset.encode_doys(X, chunks=X.chunks))
 
-    print(X)
     return X
 
 if __name__ == '__main__':
@@ -94,13 +93,12 @@ if __name__ == '__main__':
 
     # initialize ERA5 predictor dataset
     LogConfig.init_log('Initializing ERA5 predictors.')
-    Era5 = ERA5Dataset(ERA5_PATH.joinpath('ERA5'), ERA5_PREDICTORS,
+    Era5 = ERA5Dataset(ERA5_PATH.joinpath('ERA5_renamed'), ERA5_PREDICTORS,
                        plevels=ERA5_PLEVELS)
     Era5_ds = Era5.merge(chunks=CHUNKS)
-    Era5_ds = Era5_ds.rename({'longitude': 'x','latitude': 'y'})
     
     LogConfig.init_log('Initializing ERA5 predictors.')
-    Seas5 = ERA5Dataset(SEAS5_PATH.joinpath('dailySEAS5'), ERA5_PREDICTORS,
+    Seas5 = ERA5Dataset(SEAS5_PATH.joinpath(f'SEAS5/2020/'), ERA5_PREDICTORS,
                        plevels=ERA5_PLEVELS)
     Seas5_ds = Seas5.merge()
     #Seas5_ds = Seas5_ds.rename({'longitude': 'x','latitude': 'y'})
@@ -113,7 +111,7 @@ if __name__ == '__main__':
     # read in-situ gridded observations
     Obs_ds = search_files(OBS_PATH.joinpath(PREDICTAND), '.nc$').pop()
     Obs_ds = xr.open_dataset(Obs_ds)
-    Obs_ds = Obs_ds.rename({'longitude': 'x','latitude': 'y'})
+    Obs_ds = Obs_ds.rename({'lon': 'x','lat': 'y'})
 
     # whether to use digital elevation model
     if DEM:
@@ -156,27 +154,39 @@ if __name__ == '__main__':
         # sort chronologically
         train, valid = sorted(train), sorted(valid)
         Era5_train, Obs_train = Era5_ds.sel(time=train), Obs_ds.sel(time=train)
-        Era5_valid, Obs_valid = Era5_ds.sel(time=valid), Obs_ds.sel(time=valid)
+        Seas5_ds, Obs_valid = Seas5_ds.sel(time=valid), Obs_ds.sel(time=valid)
     else:
         LogConfig.init_log('We are not calculating Stratified Precipitation based on Wet Days here!')
 
     # training and validation dataset
     Era5_train, Obs_train = Era5_ds.sel(time=CALIB_PERIOD), Obs_ds.sel(time=CALIB_PERIOD)
-    Era5_valid, Obs_valid = Seas5_ds.sel(time=VALID_PERIOD), Obs_ds.sel(time=VALID_PERIOD)
+    Seas5_ds, Obs_valid = Seas5_ds.sel(time=VALID_PERIOD), Obs_ds.sel(time=VALID_PERIOD)
 
     Era5_train = doy_encoding(Era5_train, Obs_train, doy=DOY)
-    Era5_valid = doy_encoding(Era5_valid, Obs_valid, doy=DOY)
+    Seas5_ds = doy_encoding(Seas5_ds, Obs_valid, doy=DOY)
     
     predictors_train = Era5_train
-    predictors_valid = Era5_valid
+    predictors_valid = Seas5_ds
     predictand_train = Obs_train
     predictand_valid = Obs_valid
 
+    LogConfig.init_log('Era5_Train')
     print(Era5_train)
-    print(Era5_valid)
+    LogConfig.init_log('SEAS5_Training Data Here')
+    print(Seas5_ds)
     
-    predictors_train = stacker(predictors_train).compute()
+    variables = ['elevation', 'sin_doy', 'cos_doy']
+    Seas5_ds_split = Seas5_ds[variables]
+    Seas5_ds = Seas5_ds.drop_vars(variables)
+    Seas5_ds = Seas5_ds.merge(Seas5_ds_split.expand_dims(number=Seas5_ds['number']))
+    Seas5_ds = Seas5_ds.transpose('time', 'y', 'x', 'number')
+
+    print(Seas5_ds)
+
     predictors_valid = stacker(predictors_valid)
+
+
+    predictors_train = stacker(predictors_train).compute()
     predictand_train = stacker(predictand_train)
     predictand_valid = stacker(predictand_valid)
     
@@ -191,6 +201,8 @@ if __name__ == '__main__':
         'LGBMRegressor': LGBMRegressor,
     }
     Model_name = NET
+
+    Era5_ds = None
 
     LogConfig.init_log('predictand_valid shape[0] : {}'.format(predictand_valid.shape[0]))
     LogConfig.init_log('predictand_valid shape[1] : {}'.format(predictand_valid.shape[1]))
@@ -210,10 +222,12 @@ if __name__ == '__main__':
     prediction = np.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0], predictors_valid.shape[0])) * np.nan
     
     for m in range(predictors_valid.shape[0]):
+        point_valid = predictors_valid[m, :, :, :, :].compute()
         for i in range(predictors_train.shape[0]):
             for j in range(predictors_train.shape[1]):
 
                 point_predictors = predictors_train[i, j, :, :]
+                point_predictors = normalize(point_predictors)
                 point_predictand = predictand_train[i, j, :, :]
 
                 # check if the grid point is valid
@@ -222,8 +236,8 @@ if __name__ == '__main__':
                     continue
 
                 # prepare predictors of validation period
-                point_validation = predictors_valid[m, i, j, :, :]
-                #point_validation = normalize(point_validation)
+                point_validation = point_valid[i, j, :, :]
+                point_validation = normalize(point_validation)
 
                 predictand_validation = predictand_valid[i, j, :, :]
 
@@ -248,7 +262,7 @@ if __name__ == '__main__':
 
     # store predictions in xarray.Dataset
     predictions = xr.DataArray(data=prediction, dims=['time', 'y', 'x', 'number'],
-                            coords=dict(time=pd.date_range(Era5_valid.time.values[0],Era5_valid.time.values[-1], freq='D'),
+                            coords=dict(time=pd.date_range(Seas5_ds.time.values[0],Seas5_ds.time.values[-1], freq='D'),
                                         lat=Obs_valid.y, lon=Obs_valid.x, number=Seas5_ds.number))
     predictions = predictions.to_dataset(name=PREDICTAND)
 
@@ -266,6 +280,6 @@ if __name__ == '__main__':
 
     predictions.to_netcdf("{}/{}.nc".format(str(target.parent), str(predict_file)))
 
-    LogConfig.init_log('Prediction Saved!!! SMILE PLEASE')
+    LogConfig.init_log('Prediction Saved!!! SMILE PLEASE!!')
     
     

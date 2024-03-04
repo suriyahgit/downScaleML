@@ -10,13 +10,13 @@ HERE = pathlib.Path(__file__).parent
 
 ERA5_PATH = ROOT.joinpath(ERA5)
 
-SEAS5_PATH = ROOT.joinpath("SampleSF")
+SEAS5_PATH = ROOT
 
 OBS_PATH = ROOT.joinpath('CERRA')
 
 DEM_PATH = ROOT.joinpath('DEM')
 
-RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/testing_algo/')
+RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/testing_algo/2020/')
 
 MODEL_PATH = RESULTS.joinpath('RESULTS_model')
 
