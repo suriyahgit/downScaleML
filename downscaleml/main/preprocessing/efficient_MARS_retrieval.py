@@ -21,7 +21,7 @@ def dictionary_manipulator(date, config):
     elif levtype == "surface_level":
         config['levtype'] = 'sfc'
         config['step'] = step = [str(s) for s in np.arange(0, 5166, 6)]
-    
+
     return config
 
 # Constants
@@ -76,6 +76,6 @@ if __name__ == '__main__':
                  date in dates]
 
     Parallel(n_jobs=2, verbose=51)(
-        delayed(server.execute)(dictionary_manipulator(date, {**CONFIG, **{"date": date}}), file) 
+        delayed(server.execute)(dictionary_manipulator(date, {**CONFIG, **{"date": date, "target":file.name}}), file) 
         for file, date in zip(files, dates) if (not file.exists() or OVERWRITE))
 
