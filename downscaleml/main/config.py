@@ -1,10 +1,40 @@
 import datetime
 import numpy as np
+import pathlib
+
 
 from downscaleml.core.constants import (PREDICTANDS, ERA5_P_VARIABLES,
                                    ERA5_S_VARIABLES, MODELS)
 
-# builtins
+PREDICTAND='tasmin'
+assert PREDICTAND in PREDICTANDS
+
+NET='LGBMRegressor'
+assert NET in MODELS
+
+if PREDICTAND == 'pr':
+    ERA5="p_REANALYSIS"
+else:
+    ERA5="REANALYSIS"
+
+ROOT = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/hydroModelDownscale/')
+
+# path to this file
+HERE = pathlib.Path(__file__).parent
+
+ERA5_PATH = ROOT.joinpath(ERA5)
+
+SEAS5_PATH = ROOT
+
+OBS_PATH = ROOT.joinpath('CERRA')
+
+DEM_PATH = ROOT.joinpath('DEM')
+
+RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/thesis_output/')
+
+MODEL_PATH = RESULTS.joinpath('RESULTS_model')
+
+TARGET_PATH = RESULTS.joinpath('RESULTS')
 
 # include day of year as predictor
 DOY = True
@@ -26,23 +56,63 @@ STRATIFY = True
 #                               20% of CALIB_PERIOD for validation
 VALID_SIZE = 0.2
 
-CHUNKS = {'time': 366}
+CHUNKS = {'time': 365}
 
 # threshold  defining the minimum amount of precipitation (mm) for a wet day
 WET_DAY_THRESHOLD=0
 
+if PREDICTAND == 'tasmean':
+    ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
+                          'v_component_of_wind', 'specific_humidity']
+                          
+    #ERA5_P_PREDICTORS = []
+    assert all([var in ERA5_P_VARIABLES for var in ERA5_P_PREDICTORS])
+    
+    # ERA5 predictor variables on single levels
+    ERA5_S_PREDICTORS=["mean_sea_level_pressure", "2m_temperature"]
+    
+    #ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
+    assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
 
-ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
-                      'v_component_of_wind', 'specific_humidity']
-                      
-#ERA5_P_PREDICTORS = []
-assert all([var in ERA5_P_VARIABLES for var in ERA5_P_PREDICTORS])
+elif PREDICTAND == 'tasmin':
+    ERA5_P_PREDICTORS = ['geopotential', 'temperature_min', 'u_component_of_wind',
+                          'v_component_of_wind', 'specific_humidity']
+                          
+    #ERA5_P_PREDICTORS = []
+    assert all([var in ERA5_P_VARIABLES for var in ERA5_P_PREDICTORS])
+    
+    # ERA5 predictor variables on single levels
+    ERA5_S_PREDICTORS=["mean_sea_level_pressure", "2m_tasmin"]
+    
+    #ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
+    assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
 
-# ERA5 predictor variables on single levels
-ERA5_S_PREDICTORS=["mean_sea_level_pressure", "2m_temperature"]
+elif PREDICTAND == 'tasmax':
+    ERA5_P_PREDICTORS = ['geopotential', 'temperature_max', 'u_component_of_wind',
+                          'v_component_of_wind', 'specific_humidity']
+                          
+    #ERA5_P_PREDICTORS = []
+    assert all([var in ERA5_P_VARIABLES for var in ERA5_P_PREDICTORS])
+    
+    # ERA5 predictor variables on single levels
+    ERA5_S_PREDICTORS=["mean_sea_level_pressure", "2m_tasmax"]
+    
+    #ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
+    assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
 
-#ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
-assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
+else:
+    ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
+                          'v_component_of_wind', 'specific_humidity']
+                          
+    #ERA5_P_PREDICTORS = []
+    assert all([var in ERA5_P_VARIABLES for var in ERA5_P_PREDICTORS])
+    
+    # ERA5 predictor variables on single levels
+    ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
+    
+    #ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
+    assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
+
 
 # ERA5 predictor variables
 ERA5_PREDICTORS = ERA5_P_PREDICTORS + ERA5_S_PREDICTORS
@@ -61,23 +131,22 @@ if DEM:
 #NET='AdaBoostRegressor'
 #NET='AdaBoostRegressor'
 
-NET='LGBMRegressor'
-assert NET in MODELS
 
-PREDICTAND='tasmean'
-assert PREDICTAND in PREDICTANDS
+
 
 CALIB_PERIOD = np.arange(
     datetime.datetime.strptime('1985-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2020-01-01', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date())
 
 start_year = np.min(CALIB_PERIOD).astype(datetime.datetime).year
 end_year = np.max(CALIB_PERIOD).astype(datetime.datetime).year
 
 # validation period: testing
 VALID_PERIOD = np.arange(
-    datetime.datetime.strptime('2020-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2021-01-01', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('2017-01-01', '%Y-%m-%d').date())
+
+SEAS5_year = np.min(VALID_PERIOD).astype(datetime.datetime).year
 
 combination = 49
 
