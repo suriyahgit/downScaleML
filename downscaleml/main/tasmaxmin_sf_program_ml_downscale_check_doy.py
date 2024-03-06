@@ -23,18 +23,13 @@ from sklearn.model_selection import train_test_split
 # locals
 from downscaleml.core.dataset import ERA5Dataset, NetCDFDataset, EoDataset
 
-from downscaleml.main.config import (NET, ERA5_PLEVELS, ERA5_PREDICTORS, PREDICTAND,
+from downscaleml.main.config import (ERA5_PATH, OBS_PATH, DEM_PATH, MODEL_PATH, TARGET_PATH, SEAS5_PATH, NET, ERA5_PLEVELS, ERA5_PREDICTORS, PREDICTAND,
                                      CALIB_PERIOD, VALID_PERIOD, DOY, NORM,
                                      OVERWRITE, DEM, DEM_FEATURES, STRATIFY,
                                      WET_DAY_THRESHOLD, VALID_SIZE, 
-                                     start_year, end_year, CHUNKS)
+                                     start_year, end_year, CHUNKS, SEAS5_year)
 
-from downscaleml.main.inputoutput import (ERA5_PATH, OBS_PATH, DEM_PATH, MODEL_PATH, TARGET_PATH, SEAS5_PATH)
-
-from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME,
-                                        ERA5_S_VARIABLES, ERA5_S_VARIABLES_SHORTCUT, ERA5_S_VARIABLE_NAME,
-                                        ERA5_VARIABLES, ERA5_VARIABLE_NAMES, ERA5_PRESSURE_LEVELS,
-                                        PREDICTANDS, ERA5_P_VARIABLES, ERA5_S_VARIABLES)
+from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME, ERA5_S_VARIABLES, ERA5_S_VARIABLES_SHORTCUT, ERA5_S_VARIABLE_NAME, ERA5_VARIABLES, ERA5_VARIABLE_NAMES, ERA5_PRESSURE_LEVELS, PREDICTANDS, ERA5_P_VARIABLES, ERA5_S_VARIABLES)
 
 from downscaleml.core.utils import NAMING_Model, normalize, search_files, LogConfig
 from downscaleml.core.logging import log_conf
@@ -98,9 +93,11 @@ if __name__ == '__main__':
     Era5_ds = Era5.merge(chunks=CHUNKS)
     
     LogConfig.init_log('Initializing ERA5 predictors.')
+
+    print(SEAS5_year)
     
     #TEMPORARY PATHWORK HERE - SOLVE IT FOR LATER
-    Seas5 = ERA5Dataset(SEAS5_PATH.joinpath(f'SEAS5/2016/'), ERA5_PREDICTORS,
+    Seas5 = ERA5Dataset(SEAS5_PATH.joinpath(f'SEAS5/{SEAS5_year}/'), ERA5_PREDICTORS,
                        plevels=ERA5_PLEVELS)
     Seas5_ds = Seas5.merge()
     #Seas5_ds = Seas5_ds.rename({'longitude': 'x','latitude': 'y'})
@@ -280,7 +277,7 @@ if __name__ == '__main__':
         NET, PREDICTAND, ERA5_PREDICTORS, ERA5_PLEVELS, WET_DAY_THRESHOLD, dem=DEM,
         dem_features=DEM_FEATURES, doy=DOY, stratify=STRATIFY)
 
-    predictions.to_netcdf("{}/{}.nc".format(str(target.parent), str(predict_file)))
+    predictions.to_netcdf("{}/{}_{}.nc".format(str(target.parent), str(predict_file), str(SEAS5_year)))
 
     LogConfig.init_log('Prediction Saved!!! SMILE PLEASE!!')
     

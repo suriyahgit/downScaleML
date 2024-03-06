@@ -16,7 +16,7 @@ OBS_PATH = ROOT.joinpath('CERRA')
 
 DEM_PATH = ROOT.joinpath('DEM')
 
-RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/testing_algo/2020/')
+RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/thesis_output/')
 
 MODEL_PATH = RESULTS.joinpath('RESULTS_model')
 
