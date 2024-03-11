@@ -153,7 +153,7 @@ if __name__ == '__main__':
         # sort chronologically
         train, valid = sorted(train), sorted(valid)
         Era5_train, Obs_train = Era5_ds.sel(time=train), Obs_ds.sel(time=train)
-        Seas5_ds, Obs_valid = Seas5_ds.sel(time=valid), Obs_ds.sel(time=valid)
+        Era5_valid, Obs_valid = Era5_ds.sel(time=valid), Obs_ds.sel(time=valid)
     else:
         LogConfig.init_log('We are not calculating Stratified Precipitation based on Wet Days here!')
 
