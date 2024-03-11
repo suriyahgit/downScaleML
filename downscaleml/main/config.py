@@ -6,7 +6,7 @@ import pathlib
 from downscaleml.core.constants import (PREDICTANDS, ERA5_P_VARIABLES,
                                    ERA5_S_VARIABLES, MODELS)
 
-PREDICTAND='tasmin'
+PREDICTAND='pr'
 assert PREDICTAND in PREDICTANDS
 
 NET='LGBMRegressor'
@@ -49,7 +49,7 @@ OVERWRITE = False
 DEM_FEATURES = False
 
 # stratify training/validation set for precipitation by number of wet days
-STRATIFY = True
+STRATIFY = False
 
 # size of the validation set w.r.t. the training set
 # e.g., VALID_SIZE = 0.2 means: 80% of CALIB_PERIOD for training
