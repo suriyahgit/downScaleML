@@ -41,15 +41,15 @@ step = [str(s) for s in np.arange(0, 5166, 6)]
 level = [500, 850] # Incase you need to change the pressure levels
 
 # Variables
-levtype = "surface_level" # Change this to levtype = "surface_level"
+levtype = "pressure_level" # Change this to levtype = "surface_level"
 if levtype == "pressure_level":
     param = ["129.128", "133.128", "130.128", "131", "132"]
 elif levtype == "surface_level":
     param = ["167.128", "228.128", "151.128"]
 SEAS5_PATH = pathlib.Path(f'/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/extra_SEAS5/{levtype}/')
-years = [2018]
+years = [2017, 2018, 2019]
 for year in years:
-    dates.extend([f"{year}{month:02d}01" for month in range(12, 13)])
+    dates.extend([f"{year}{month:02d}01" for month in range(1, 13)])
 
 # General Config Parameters to be passed
 CONFIG = {
