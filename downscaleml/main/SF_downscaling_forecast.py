@@ -27,7 +27,7 @@ from downscaleml.main.config import (ERA5_PATH, OBS_PATH, DEM_PATH, MODEL_PATH, 
                                      CALIB_PERIOD, VALID_PERIOD, DOY, NORM,
                                      OVERWRITE, DEM, DEM_FEATURES, STRATIFY,
                                      WET_DAY_THRESHOLD, VALID_SIZE, 
-                                     start_year, end_year, CHUNKS, SEAS5_type)
+                                     start_year, end_year, CHUNKS, SEAS5_type, SEAS5_CHUNKS)
 
 from downscaleml.core.constants import (ERA5_P_VARIABLES, ERA5_P_VARIABLES_SHORTCUT, ERA5_P_VARIABLE_NAME, ERA5_S_VARIABLES, ERA5_S_VARIABLES_SHORTCUT, ERA5_S_VARIABLE_NAME, ERA5_VARIABLES, ERA5_VARIABLE_NAMES, ERA5_PRESSURE_LEVELS, PREDICTANDS, ERA5_P_VARIABLES, ERA5_S_VARIABLES)
 
@@ -99,7 +99,9 @@ if __name__ == '__main__':
     #TEMPORARY PATHWORK HERE - SOLVE IT FOR LATER
     Seas5 = ERA5Dataset(SEAS5_PATH.joinpath(f'{SEAS5_type}_SEAS5/'), ERA5_PREDICTORS,
                        plevels=ERA5_PLEVELS)
-    Seas5_ds = Seas5.merge()
+    Seas5_ds = Seas5.merge(chunks=SEAS5_CHUNKS)
+    Seas5_ds = xr.unify_chunks(Seas5_ds)
+    Seas5_ds = Seas5_ds[0]
     #Seas5_ds = Seas5_ds.rename({'longitude': 'x','latitude': 'y'})
     
     
@@ -129,14 +131,15 @@ if __name__ == '__main__':
         # check whether to use slope and aspect
         if not DEM_FEATURES:
             dem = dem.drop_vars(['slope', 'aspect']).chunk(Era5_ds.chunks)
-            dem_seas5 = dem_seas5.drop_vars(['slope', 'aspect']).chunk(Seas5_ds.chunks)
+            dem_seas5_n = dem_seas5.merge(dem_seas5.expand_dims(number=Seas5_ds['number'])).chunk(Seas5_ds.chunks)
+            dem_seas5_n = dem_seas5_n.drop_vars(['slope', 'aspect']).chunk(Seas5_ds.chunks)
 
 
         # add dem to set of predictor variables
         dem = dem.chunk(Era5_ds.chunks)
-        dem_seas5 = dem_seas5.chunk(Seas5_ds.chunks)
+        dem_seas5_n = dem_seas5_n.chunk(Seas5_ds.chunks)
         Era5_ds = xr.merge([Era5_ds, dem])
-        Seas5_ds = xr.merge([Seas5_ds, dem_seas5])
+        Seas5_ds = xr.merge([Seas5_ds, dem_seas5_n])
 
     # initialize training data
     LogConfig.init_log('Initializing training data.')
@@ -160,9 +163,15 @@ if __name__ == '__main__':
     # training and validation dataset
     Era5_train, Obs_train = Era5_ds.sel(time=CALIB_PERIOD), Obs_ds.sel(time=CALIB_PERIOD)
     Seas5_ds, Obs_valid = Seas5_ds.sel(time=VALID_PERIOD), Obs_ds.sel(time=VALID_PERIOD)
+    dem_seas5, Obs_valid = dem_seas5.sel(time=VALID_PERIOD), Obs_ds.sel(time=VALID_PERIOD)
+
 
     Era5_train = doy_encoding(Era5_train, Obs_train, doy=DOY)
-    Seas5_ds = doy_encoding(Seas5_ds, Obs_valid, doy=DOY)
+    dem_seas5 = doy_encoding(dem_seas5, Obs_valid, doy=DOY)
+
+    Seas5_ds = Seas5_ds.merge(dem_seas5.expand_dims(number=Seas5_ds['number'])).chunk(Seas5_ds.chunks)
+    Seas5_ds = Seas5_ds.drop_vars(['slope', 'aspect']).chunk(Seas5_ds.chunks)
+
     
     predictors_train = Era5_train
     predictors_valid = Seas5_ds
@@ -172,13 +181,9 @@ if __name__ == '__main__':
     LogConfig.init_log('Era5_Train')
     print(Era5_train)
     LogConfig.init_log('SEAS5_Training Data Here')
-    print(Seas5_ds)
+    #print(Seas5_ds)
     
-    variables = ['elevation', 'sin_doy', 'cos_doy']
-    Seas5_ds_split = Seas5_ds[variables]
-    Seas5_ds = Seas5_ds.drop_vars(variables)
-    Seas5_ds = Seas5_ds.merge(Seas5_ds_split.expand_dims(number=Seas5_ds['number']))
-    Seas5_ds = Seas5_ds.transpose('time', 'y', 'x', 'number')
+    Seas5_ds = Seas5_ds.transpose('time', 'y', 'x', 'number').chunk(Seas5_ds.chunks)
 
     print(Seas5_ds)
 
@@ -220,22 +225,29 @@ if __name__ == '__main__':
 
     prediction = np.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0], predictors_valid.shape[0])) * np.nan
     
-    for m in range(predictors_valid.shape[0]):
-        point_valid = predictors_valid[m, :, :, :, :].compute()
-        for i in range(predictors_train.shape[0]):
-            for j in range(predictors_train.shape[1]):
+    for i in range(predictors_train.shape[0]):
+        for j in range(predictors_train.shape[1]):
 
-                point_predictors = predictors_train[i, j, :, :]
-                point_predictors = normalize(point_predictors)
-                point_predictand = predictand_train[i, j, :, :]
+            point_predictors = predictors_train[i, j, :, :]
+            point_predictors = normalize(point_predictors)
+            point_predictand = predictand_train[i, j, :, :]
 
-                # check if the grid point is valid
-                if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
-                    # move on to next grid point
-                    continue
+            # check if the grid point is valid
+            if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
+                # move on to next grid point
+                continue
 
+            # instanciate the model for the current grid point
+            model = Models[Model_name]()
+
+            # train model on training data
+            model.fit(point_predictors, point_predictand)
+
+            point_valid = predictors_valid[:, i, j, :, :].compute()
+            for m in range(predictors_valid.shape[0]):
+            
                 # prepare predictors of validation period
-                point_validation = point_valid[i, j, :, :]
+                point_validation = point_valid[m, :, :]
                 point_validation = normalize(point_validation)
 
                 predictand_validation = predictand_valid[i, j, :, :]
@@ -244,11 +256,7 @@ if __name__ == '__main__':
                 # normalize each predictor variable to [0, 1]
                 # point_predictors = normalize(point_predictors)
 
-                # instanciate the model for the current grid point
-                model = Models[Model_name]()
-
-                # train model on training data
-                model.fit(point_predictors, point_predictand)
+            
                 # predict validation period
                 pred = model.predict(point_validation)
                 LogConfig.init_log('Processing grid point: {:d}, {:d}, {:d} - score: {:.2f}'.format(m, i, j, r2_score(predictand_validation, pred)))
@@ -257,6 +265,7 @@ if __name__ == '__main__':
                 prediction[:, j, i, m] = pred
 
     LogConfig.init_log('Model ensemble saved and Indexed')
+    
     
 
     # store predictions in xarray.Dataset
@@ -277,7 +286,7 @@ if __name__ == '__main__':
         NET, PREDICTAND, ERA5_PREDICTORS, ERA5_PLEVELS, WET_DAY_THRESHOLD, dem=DEM,
         dem_features=DEM_FEATURES, doy=DOY, stratify=STRATIFY)
 
-    predictions.to_netcdf("{}/{}_{}_2017.nc".format(str(target.parent), str(predict_file), SEAS5_type))
+    predictions.to_netcdf("{}/{}_{}.nc".format(str(target.parent), str(predict_file), SEAS5_type))
 
     LogConfig.init_log('Prediction Saved!!! SMILE PLEASE!!')
     
