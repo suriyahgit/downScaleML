@@ -38,7 +38,7 @@ TARGET_PATH = RESULTS.joinpath('RESULTS')
 
 # SEAS5 hindcast or forecast
 
-SEAS5_type = "hindcast"
+SEAS5_type = "forecast"
 # SEAS5_type = "forecast"
 
 # include day of year as predictor
@@ -62,6 +62,7 @@ STRATIFY = True
 VALID_SIZE = 0.2
 
 CHUNKS = {'time': 365, 'x': 161, 'y': 96}
+SEAS5_CHUNKS = {'time': 365, 'x': 161, 'y': 96, 'number': 1}
 
 # threshold  defining the minimum amount of precipitation (mm) for a wet day
 WET_DAY_THRESHOLD=0
@@ -138,15 +139,15 @@ if DEM:
 
 CALIB_PERIOD = np.arange(
     datetime.datetime.strptime('1985-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2016-02-01', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2017-02-01', '%Y-%m-%d').date())
 
 start_year = np.min(CALIB_PERIOD).astype(datetime.datetime).year
 end_year = np.max(CALIB_PERIOD).astype(datetime.datetime).year
 
 # validation period: testing
 VALID_PERIOD = np.arange(
-    datetime.datetime.strptime('2016-02-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2017-02-01', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2017-02-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date())
 
 SEAS5_year = np.min(VALID_PERIOD).astype(datetime.datetime).year
 
