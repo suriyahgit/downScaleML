@@ -15,7 +15,7 @@ PREDICTAND=(tasmean pr)
 WET_DAY_THRESHOLDS=(0)
 
 #MODELS=(RandomForestRegressor XGBRegressor AdaBoostRegressor LGBMRegressor)
-MODELS=(RandomForestRegressor XGBRegressor AdaBoostRegressor)
+MODELS=(LGBMRegressor RandomForestRegressor XGBRegressor AdaBoostRegressor)
 
 TAS='["mean_sea_level_pressure", "2m_temperature"]'
 

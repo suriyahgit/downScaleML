@@ -47,9 +47,9 @@ if levtype == "pressure_level":
 elif levtype == "surface_level":
     param = ["167.128", "228.128", "151.128"]
 SEAS5_PATH = pathlib.Path(f'/mnt/CEPH_PROJECTS/InterTwin/02_Original_Climate_Data/extra_SEAS5/{levtype}/')
-years = [2017, 2018, 2019]
+years = [2019]
 for year in years:
-    dates.extend([f"{year}{month:02d}01" for month in range(1, 13)])
+    dates.extend([f"{year}{month:02d}01" for month in range(12, 13)])
 
 # General Config Parameters to be passed
 CONFIG = {
