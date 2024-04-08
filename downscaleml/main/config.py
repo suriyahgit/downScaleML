@@ -9,7 +9,7 @@ from downscaleml.core.constants import (PREDICTANDS, ERA5_P_VARIABLES,
 PREDICTAND='tasmean'
 assert PREDICTAND in PREDICTANDS
 
-NET='AdaBoostRegressor'
+NET='LGBMRegressor'
 assert NET in MODELS
 
 if PREDICTAND is 'pr':
@@ -30,11 +30,16 @@ OBS_PATH = ROOT.joinpath('CERRA')
 
 DEM_PATH = ROOT.joinpath('DEM')
 
-RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/base_models/')
+RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/sf_downscaling/')
 
 MODEL_PATH = RESULTS.joinpath('RESULTS_model')
 
 TARGET_PATH = RESULTS.joinpath('RESULTS')
+
+# SEAS5 hindcast or forecast
+
+SEAS5_type = "hindcast"
+# SEAS5_type = "forecast"
 
 # include day of year as predictor
 DOY = True
@@ -56,7 +61,7 @@ STRATIFY = True
 #                               20% of CALIB_PERIOD for validation
 VALID_SIZE = 0.2
 
-CHUNKS = {'time': 365, 'lon': 161, 'lat': 96}
+CHUNKS = {'time': 365, 'x': 161, 'y': 96}
 
 # threshold  defining the minimum amount of precipitation (mm) for a wet day
 WET_DAY_THRESHOLD=0
@@ -133,15 +138,15 @@ if DEM:
 
 CALIB_PERIOD = np.arange(
     datetime.datetime.strptime('1985-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2016-02-01', '%Y-%m-%d').date())
 
 start_year = np.min(CALIB_PERIOD).astype(datetime.datetime).year
 end_year = np.max(CALIB_PERIOD).astype(datetime.datetime).year
 
 # validation period: testing
 VALID_PERIOD = np.arange(
-    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2016-02-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('2017-02-01', '%Y-%m-%d').date())
 
 SEAS5_year = np.min(VALID_PERIOD).astype(datetime.datetime).year
 
