@@ -11,6 +11,8 @@ import pathlib
 import pandas as pd
 import joblib
 
+
+
 # externals
 import xarray as xr
 
@@ -42,6 +44,17 @@ def stacker(xarray_dataset):
     stacked = xarray_dataset.stack()
     dask_arr = stacked.to_array().data
     xarray_dataset = dask_arr.T
+    LogConfig.init_log('Shape is in (spatial, time, variables):{}'.format(xarray_dataset.shape))
+    return xarray_dataset
+
+def dask_stacker(xarray_dataset):
+    # stack along the lat and lon dimensions
+    stacked = xarray_dataset.stack()
+    dask_arr = stacked.to_array().data
+    xarray_dataset = dask_arr.T
+    rechunker = (1, 161, 96, 365 ,15)
+    xarray_dataset = xarray_dataset.rechunk(rechunker)
+
     LogConfig.init_log('Shape is in (spatial, time, variables):{}'.format(xarray_dataset.shape))
     return xarray_dataset
 
@@ -170,8 +183,11 @@ if __name__ == '__main__':
     dem_seas5 = doy_encoding(dem_seas5, Obs_valid, doy=DOY)
 
     Seas5_ds = Seas5_ds.merge(dem_seas5.expand_dims(number=Seas5_ds['number'])).chunk(Seas5_ds.chunks)
-    Seas5_ds = Seas5_ds.drop_vars(['slope', 'aspect']).chunk(Seas5_ds.chunks)
+    Seas5_ds = Seas5_ds.drop_vars(['slope', 'aspect'])
 
+    #print(Seas5_ds)
+
+    Seas5_ds = Seas5_ds.transpose('time', 'y', 'x', 'number')
     
     predictors_train = Era5_train
     predictors_valid = Seas5_ds
@@ -181,16 +197,11 @@ if __name__ == '__main__':
     LogConfig.init_log('Era5_Train')
     print(Era5_train)
     LogConfig.init_log('SEAS5_Training Data Here')
-    #print(Seas5_ds)
-    
-    Seas5_ds = Seas5_ds.transpose('time', 'y', 'x', 'number').chunk(Seas5_ds.chunks)
 
-    print(Seas5_ds)
+    print(predictors_valid)
 
-    predictors_valid = stacker(predictors_valid)
-
-
-    predictors_train = stacker(predictors_train).compute()
+    predictors_valid = dask_stacker(predictors_valid)
+    predictors_train = stacker(predictors_train)
     predictand_train = stacker(predictand_train)
     predictand_valid = stacker(predictand_valid)
     
@@ -225,29 +236,28 @@ if __name__ == '__main__':
 
     prediction = np.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0], predictors_valid.shape[0])) * np.nan
     
-    for i in range(predictors_train.shape[0]):
-        for j in range(predictors_train.shape[1]):
+    for m in range(predictors_valid.shape[0]):
+        if m == 0:
+            point_valid = predictors_valid[m, :, :, :, :].compute()
+            pv = dask.delayed(predictors_valid[m+1, :, :, :, :].compute())
+        else:
+            pv = pv.compute()
 
-            point_predictors = predictors_train[i, j, :, :]
-            point_predictors = normalize(point_predictors)
-            point_predictand = predictand_train[i, j, :, :]
 
-            # check if the grid point is valid
-            if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
-                # move on to next grid point
-                continue
+        for i in range(predictors_train.shape[0]):
+            for j in range(predictors_train.shape[1]):
 
-            # instanciate the model for the current grid point
-            model = Models[Model_name]()
+                point_predictors = predictors_train[i, j, :, :]
+                point_predictors = normalize(point_predictors)
+                point_predictand = predictand_train[i, j, :, :]
 
-            # train model on training data
-            model.fit(point_predictors, point_predictand)
+                # check if the grid point is valid
+                if np.isnan(point_predictors).any() or np.isnan(point_predictand).any():
+                    # move on to next grid point
+                    continue
 
-            point_valid = predictors_valid[:, i, j, :, :].compute()
-            for m in range(predictors_valid.shape[0]):
-            
                 # prepare predictors of validation period
-                point_validation = point_valid[m, :, :]
+                point_validation = point_valid[i, j, :, :]
                 point_validation = normalize(point_validation)
 
                 predictand_validation = predictand_valid[i, j, :, :]
@@ -256,7 +266,11 @@ if __name__ == '__main__':
                 # normalize each predictor variable to [0, 1]
                 # point_predictors = normalize(point_predictors)
 
-            
+                # instanciate the model for the current grid point
+                model = Models[Model_name]()
+
+                # train model on training data
+                model.fit(point_predictors, point_predictand)
                 # predict validation period
                 pred = model.predict(point_validation)
                 LogConfig.init_log('Processing grid point: {:d}, {:d}, {:d} - score: {:.2f}'.format(m, i, j, r2_score(predictand_validation, pred)))
