@@ -163,28 +163,24 @@ if __name__ == '__main__':
 
     Era5_train = doy_encoding(Era5_train, Obs_train, doy=DOY)
     Seas5_ds = doy_encoding(Seas5_ds, Obs_valid, doy=DOY)
+
+    variables = ['elevation', 'sin_doy', 'cos_doy']
+    Seas5_ds_split = Seas5_ds[variables]
+    Seas5_ds = Seas5_ds.drop_vars(variables)
+    Seas5_ds = Seas5_ds.merge(Seas5_ds_split.expand_dims(number=Seas5_ds['number']))
+    Seas5_ds = Seas5_ds.transpose('time', 'y', 'x', 'number')
+    
+    LogConfig.init_log('Era5_Train')
+    print(Era5_train)
+    LogConfig.init_log('SEAS5_Training Data Here')
+    print(Seas5_ds)
     
     predictors_train = Era5_train
     predictors_valid = Seas5_ds
     predictand_train = Obs_train
     predictand_valid = Obs_valid
 
-    LogConfig.init_log('Era5_Train')
-    print(Era5_train)
-    LogConfig.init_log('SEAS5_Training Data Here')
-    print(Seas5_ds)
-    
-    variables = ['elevation', 'sin_doy', 'cos_doy']
-    Seas5_ds_split = Seas5_ds[variables]
-    Seas5_ds = Seas5_ds.drop_vars(variables)
-    Seas5_ds = Seas5_ds.merge(Seas5_ds_split.expand_dims(number=Seas5_ds['number']))
-    Seas5_ds = Seas5_ds.transpose('time', 'y', 'x', 'number')
-
-    print(Seas5_ds)
-
     predictors_valid = stacker(predictors_valid)
-
-
     predictors_train = stacker(predictors_train).compute()
     predictand_train = stacker(predictand_train)
     predictand_valid = stacker(predictand_valid)
@@ -277,7 +273,7 @@ if __name__ == '__main__':
         NET, PREDICTAND, ERA5_PREDICTORS, ERA5_PLEVELS, WET_DAY_THRESHOLD, dem=DEM,
         dem_features=DEM_FEATURES, doy=DOY, stratify=STRATIFY)
 
-    predictions.to_netcdf("{}/{}_{}_2017.nc".format(str(target.parent), str(predict_file), SEAS5_type))
+    predictions.to_netcdf("{}/{}_{}.nc".format(str(target.parent), str(predict_file), SEAS5_type))
 
     LogConfig.init_log('Prediction Saved!!! SMILE PLEASE!!')
     
