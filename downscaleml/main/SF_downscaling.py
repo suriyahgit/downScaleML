@@ -222,7 +222,7 @@ if __name__ == '__main__':
             for j in range(predictors_train.shape[1]):
 
                 point_predictors = predictors_train[i, j, :, :]
-                point_predictors = normalize(point_predictors)
+                #point_predictors = normalize(point_predictors)
                 point_predictand = predictand_train[i, j, :, :]
 
                 # check if the grid point is valid
@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
                 # prepare predictors of validation period
                 point_validation = point_valid[i, j, :, :]
-                point_validation = normalize(point_validation)
+                #point_validation = normalize(point_validation)
 
                 predictand_validation = predictand_valid[i, j, :, :]
 

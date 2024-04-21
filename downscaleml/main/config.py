@@ -6,7 +6,7 @@ import pathlib
 from downscaleml.core.constants import (PREDICTANDS, ERA5_P_VARIABLES,
                                    ERA5_S_VARIABLES, MODELS)
 
-PREDICTAND='tasmean'
+PREDICTAND='pr'
 assert PREDICTAND in PREDICTANDS
 
 NET='LGBMRegressor'
