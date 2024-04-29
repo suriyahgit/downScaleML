@@ -227,7 +227,9 @@ if __name__ == '__main__':
     #LogConfig.init_log('predictors_valid shape[3] : {}'.format(predictors_valid.shape[3]))
     #LogConfig.init_log('predictors_valid shape[3] : {}'.format(predictors_valid.shape[4]))
 
-    for m in range(len(predictors_valid["number"])):
+    
+    #for m in range(len(predictors_valid["number"])):
+    for m in range(48, 51):
         
         prediction = np.ones(shape=(predictand_valid.shape[2], predictand_valid.shape[1], predictand_valid.shape[0])) * np.nan
         point_valid = stacker(predictors_valid.isel(number=m)).compute()
