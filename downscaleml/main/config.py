@@ -6,7 +6,7 @@ import pathlib
 from downscaleml.core.constants import (PREDICTANDS, ERA5_P_VARIABLES,
                                    ERA5_S_VARIABLES, MODELS)
 
-PREDICTAND='pr'
+PREDICTAND='tasmean'
 assert PREDICTAND in PREDICTANDS
 
 NET='LGBMRegressor'
@@ -140,20 +140,20 @@ if DEM:
 #NET='AdaBoostRegressor'
 
 CALIB_PERIOD = np.arange(
-    datetime.datetime.strptime('1985-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2016-02-01', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2011-01-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date())
 
 start_year = np.min(CALIB_PERIOD).astype(datetime.datetime).year
 end_year = np.max(CALIB_PERIOD).astype(datetime.datetime).year
 
 # validation period: testing
 VALID_PERIOD = np.arange(
-    datetime.datetime.strptime('2017-02-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date(),
     datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date())
 
 SEAS5_year = np.min(VALID_PERIOD).astype(datetime.datetime).year
 
-combination = 1
+combination = 4
 
 params = {'reg_alpha': 0.001018337175296235,
  'reg_lambda': 0.10078524608920145,
