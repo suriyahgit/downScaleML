@@ -6,7 +6,7 @@ import pathlib
 from downscaleml.core.constants import (PREDICTANDS, ERA5_P_VARIABLES,
                                    ERA5_S_VARIABLES, MODELS)
 
-PREDICTAND='tasmean'
+PREDICTAND='tasmax'
 assert PREDICTAND in PREDICTANDS
 
 NET='LGBMRegressor'
@@ -15,9 +15,9 @@ assert NET in MODELS
 if PREDICTAND is 'pr':
     ERA5="p_REANALYSIS"
 else:
-    ERA5="REANALYSIS"
+    ERA5="HISTORICAL/r101i1p1f1/"
 
-ROOT = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/hydroModelDownscale/')
+ROOT = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/cmip_downscale/')
 
 # path to this file
 HERE = pathlib.Path(__file__).parent
@@ -26,11 +26,13 @@ ERA5_PATH = ROOT.joinpath(ERA5)
 
 SEAS5_PATH = ROOT
 
-OBS_PATH = ROOT.joinpath('CERRA')
+PROJECTION_PATH = ROOT.joinpath('PROJECTION')
+
+OBS_PATH = ROOT.joinpath('MSWX')
 
 DEM_PATH = ROOT.joinpath('DEM')
 
-RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/sf_downscaling/')
+RESULTS = pathlib.Path('/mnt/CEPH_PROJECTS/InterTwin/Climate_Downscaling/cmip_downscale/')
 
 MODEL_PATH = RESULTS.joinpath('RESULTS_model')
 
@@ -96,14 +98,14 @@ elif PREDICTAND is 'tasmin':
     assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
 
 elif PREDICTAND is 'tasmax':
-    ERA5_P_PREDICTORS = ['geopotential', 'temperature_max', 'u_component_of_wind',
-                          'v_component_of_wind', 'specific_humidity']
+    ERA5_P_PREDICTORS = ['geopotential', 'temperature', 'u_component_of_wind',
+                          'v_component_of_wind']
                           
     #ERA5_P_PREDICTORS = []
     assert all([var in ERA5_P_VARIABLES for var in ERA5_P_PREDICTORS])
     
     # ERA5 predictor variables on single levels
-    ERA5_S_PREDICTORS=["mean_sea_level_pressure", "2m_tasmax"]
+    ERA5_S_PREDICTORS=["mean_sea_level_pressure", "tasmax"]
     
     #ERA5_S_PREDICTORS=["mean_sea_level_pressure", "total_precipitation"]
     assert all([var in ERA5_S_VARIABLES for var in ERA5_S_PREDICTORS])
@@ -126,7 +128,7 @@ else:
 ERA5_PREDICTORS = ERA5_P_PREDICTORS + ERA5_S_PREDICTORS
 
 # ERA5 pressure levels
-ERA5_PLEVELS = [500, 850]
+ERA5_PLEVELS = [250, 500, 850]
 
 DEM = True
 if DEM:
@@ -134,49 +136,17 @@ if DEM:
     if 'orography' in ERA5_S_PREDICTORS:
         ERA5_S_PREDICTORS.remove('orography')
 
-#NET='AdaBoostRegressor'
-#NET='AdaBoostRegressor'
-#NET='AdaBoostRegressor'
-#NET='AdaBoostRegressor'
 
 CALIB_PERIOD = np.arange(
-    datetime.datetime.strptime('2011-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date())
+    datetime.datetime.strptime('1979-01-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('2015-01-01', '%Y-%m-%d').date())
 
 start_year = np.min(CALIB_PERIOD).astype(datetime.datetime).year
 end_year = np.max(CALIB_PERIOD).astype(datetime.datetime).year
 
 # validation period: testing
 VALID_PERIOD = np.arange(
-    datetime.datetime.strptime('2016-01-01', '%Y-%m-%d').date(),
-    datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date())
+    datetime.datetime.strptime('2015-01-01', '%Y-%m-%d').date(),
+    datetime.datetime.strptime('2100-12-31', '%Y-%m-%d').date())
 
 SEAS5_year = np.min(VALID_PERIOD).astype(datetime.datetime).year
-
-combination = 4
-
-params = {'reg_alpha': 0.001018337175296235,
- 'reg_lambda': 0.10078524608920145,
- 'colsample_bytree': 0.7,
- 'subsample': 0.8,
- 'learning_rate': 0.01,
- 'max_depth': 100,
- 'num_leaves': 526,
- 'min_child_samples': 59,
- 'random_state': 48,
- 'n_estimators': 20000,
- 'metric': 'rmse',
- 'cat_smooth': 91}
-
-paramss = {'reg_alpha': 0.008623170303712244, 
-           'reg_lambda': 0.0012155495918039461, 
-           'colsample_bytree': 1.0, 
-           'subsample': 1.0, 
-           'learning_rate': 0.008, 
-           'max_depth': 20, 
-           'num_leaves': 454, 
-           'min_child_samples': 54,
-           'random_state': 48,
-           'n_estimators': 20000,
-           'metric': 'rmse',
-           'cat_smooth': 91}
